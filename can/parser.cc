@@ -10,8 +10,14 @@
 #include <sys/stat.h>
 #include <sys/mman.h>
 
+<<<<<<< HEAD
 #include "cereal/logger/logger.h"
 #include "opendbc/can/common.h"
+=======
+#include "common.h"
+#include "log.capnp.h"
+
+>>>>>>> make build independent of comma ecosystem
 
 int64_t get_raw_value(const std::vector<uint8_t> &msg, const Signal &sig) {
   int64_t ret = 0;
@@ -182,7 +188,7 @@ void CANParser::update_string(const std::string &data, bool sendcan) {
 
   // extract the messages
   capnp::FlatArrayMessageReader cmsg(aligned_buf.slice(0, buf_size));
-  cereal::Event::Reader event = cmsg.getRoot<cereal::Event>();
+  Event::Reader event = cmsg.getRoot<Event>();
 
   if (first_nanos == 0) {
     first_nanos = event.getLogMonoTime();
@@ -195,6 +201,7 @@ void CANParser::update_string(const std::string &data, bool sendcan) {
   UpdateValid(last_nanos);
 }
 
+<<<<<<< HEAD
 void CANParser::update_strings(const std::vector<std::string> &data, std::vector<SignalValue> &vals, bool sendcan) {
   uint64_t current_nanos = 0;
   for (const auto &d : data) {
@@ -207,6 +214,9 @@ void CANParser::update_strings(const std::vector<std::string> &data, std::vector
 }
 
 void CANParser::UpdateCans(uint64_t nanos, const capnp::List<cereal::CanData>::Reader& cans) {
+=======
+void CANParser::UpdateCans(uint64_t sec, const capnp::List<CanData>::Reader& cans) {
+>>>>>>> make build independent of comma ecosystem
   //DEBUG("got %d messages\n", cans.size());
 
   bool bus_empty = true;
@@ -251,8 +261,13 @@ void CANParser::UpdateCans(uint64_t nanos, const capnp::List<cereal::CanData>::R
 }
 #endif
 
+<<<<<<< HEAD
 void CANParser::UpdateCans(uint64_t nanos, const capnp::DynamicStruct::Reader& cmsg) {
   // assume message struct is `cereal::CanData` and parse
+=======
+void CANParser::UpdateCans(uint64_t sec, const capnp::DynamicStruct::Reader& cmsg) {
+  // assume message struct is `CanData` and parse
+>>>>>>> make build independent of comma ecosystem
   assert(cmsg.has("address") && cmsg.has("src") && cmsg.has("dat") && cmsg.has("busTime"));
 
   if (cmsg.get("src").as<uint8_t>() != bus) {

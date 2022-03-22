@@ -10,7 +10,7 @@
 #include <capnp/serialize.h>
 
 #ifndef DYNAMIC_CAPNP
-#include "cereal/gen/cpp/log.capnp.h"
+#include "log.capnp.h"
 #endif
 
 #include "opendbc/can/common_dbc.h"
