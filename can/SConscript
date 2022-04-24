@@ -14,6 +14,13 @@ libdbc = envDBC.SharedLibrary('libdbc', src, LIBS=libs)
 # static library for tools like cabana
 envDBC.Library('libdbc_static', src, LIBS=libs)
 
+# Build Capnp Definitions
+#msg_capnp = env.Command(
+#    target=['msg.capnp.c++', 'msg.capnp.h'],
+#    source=["msg.capnp"],
+#    action='capnp compile -oc++ $SOURCE'
+#)
+
 # Build packer and parser
 lenv = envCython.Clone()
 lenv["LINKFLAGS"] += [libdbc[0].get_labspath()]
