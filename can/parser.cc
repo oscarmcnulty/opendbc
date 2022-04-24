@@ -15,7 +15,7 @@
 #include "opendbc/can/common.h"
 =======
 #include "common.h"
-#include "log.capnp.h"
+#include "msg.capnp.h"
 
 >>>>>>> make build independent of comma ecosystem
 
