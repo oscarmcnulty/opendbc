@@ -2,7 +2,7 @@
 import unittest
 import random
 
-from msgDefinitions import log
+from definitions import log
 from opendbc.can.parser import CANParser
 from opendbc.can.packer import CANPacker
 from opendbc.can.tests import TEST_DBC
