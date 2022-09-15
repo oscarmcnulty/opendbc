@@ -66,6 +66,7 @@ bool MessageState::parse(uint64_t nanos, const std::vector<uint8_t> &dat) {
       }
     }
 
+<<<<<<< HEAD
     tmp_vals[i] = tmp * sig.factor + sig.offset;
   }
 
@@ -74,6 +75,12 @@ bool MessageState::parse(uint64_t nanos, const std::vector<uint8_t> &dat) {
     LOGE("0x%X message checks failed, checksum failed %d, counter failed %d", address, checksum_failed, counter_failed);
     return false;
   }
+=======
+    if (checksum_failed || counter_failed) {
+      WARN("0x%X message checks failed, checksum failed %d, counter failed %d", address, checksum_failed, counter_failed);
+      return false;
+    }
+>>>>>>> fix build for flowpilot
 
   for (int i = 0; i < parse_sigs.size(); i++) {
     vals[i] = tmp_vals[i];
@@ -305,9 +312,15 @@ void CANParser::UpdateValid(uint64_t nanos) {
     if (state.check_threshold > 0 && (missing || timed_out)) {
       if (show_missing && !bus_timeout) {
         if (missing) {
+<<<<<<< HEAD
           LOGE("0x%X '%s' NOT SEEN", state.address, state.name.c_str());
         } else if (timed_out) {
           LOGE("0x%X '%s' TIMED OUT", state.address, state.name.c_str());
+=======
+          WARN("0x%X NOT SEEN", state.address);
+        } else if (timed_out) {
+          WARN("0x%X TIMED OUT", state.address);
+>>>>>>> fix build for flowpilot
         }
       }
       _valid = false;
