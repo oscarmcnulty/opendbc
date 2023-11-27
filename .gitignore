@@ -1,9 +1,3 @@
-# Project specific
-can/msg.capnp.c++
-can/msg.capnp.h
-
-.ccls-cache
-
 .mypy_cache/
 *.pyc
 *.os

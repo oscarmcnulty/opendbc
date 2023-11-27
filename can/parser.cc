@@ -11,6 +11,7 @@
 #include <sys/mman.h>
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 #include "cereal/logger/logger.h"
 #include "opendbc/can/common.h"
 =======
@@ -18,6 +19,10 @@
 #include "msg.capnp.h"
 
 >>>>>>> make build independent of comma ecosystem
+=======
+#include "cereal/logger/logger.h"
+#include "opendbc/can/common.h"
+>>>>>>> refactor some
 
 int64_t get_raw_value(const std::vector<uint8_t> &msg, const Signal &sig) {
   int64_t ret = 0;
@@ -67,6 +72,9 @@ bool MessageState::parse(uint64_t nanos, const std::vector<uint8_t> &dat) {
     }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> refactor some
     tmp_vals[i] = tmp * sig.factor + sig.offset;
   }
 
@@ -75,12 +83,15 @@ bool MessageState::parse(uint64_t nanos, const std::vector<uint8_t> &dat) {
     LOGE("0x%X message checks failed, checksum failed %d, counter failed %d", address, checksum_failed, counter_failed);
     return false;
   }
+<<<<<<< HEAD
 =======
     if (checksum_failed || counter_failed) {
       WARN("0x%X message checks failed, checksum failed %d, counter failed %d", address, checksum_failed, counter_failed);
       return false;
     }
 >>>>>>> fix build for flowpilot
+=======
+>>>>>>> refactor some
 
   for (int i = 0; i < parse_sigs.size(); i++) {
     vals[i] = tmp_vals[i];
@@ -195,7 +206,7 @@ void CANParser::update_string(const std::string &data, bool sendcan) {
 
   // extract the messages
   capnp::FlatArrayMessageReader cmsg(aligned_buf.slice(0, buf_size));
-  Event::Reader event = cmsg.getRoot<Event>();
+  cereal::Event::Reader event = cmsg.getRoot<cereal::Event>();
 
   if (first_nanos == 0) {
     first_nanos = event.getLogMonoTime();
@@ -209,6 +220,9 @@ void CANParser::update_string(const std::string &data, bool sendcan) {
 }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> refactor some
 void CANParser::update_strings(const std::vector<std::string> &data, std::vector<SignalValue> &vals, bool sendcan) {
   uint64_t current_nanos = 0;
   for (const auto &d : data) {
@@ -221,9 +235,12 @@ void CANParser::update_strings(const std::vector<std::string> &data, std::vector
 }
 
 void CANParser::UpdateCans(uint64_t nanos, const capnp::List<cereal::CanData>::Reader& cans) {
+<<<<<<< HEAD
 =======
 void CANParser::UpdateCans(uint64_t sec, const capnp::List<CanData>::Reader& cans) {
 >>>>>>> make build independent of comma ecosystem
+=======
+>>>>>>> refactor some
   //DEBUG("got %d messages\n", cans.size());
 
   bool bus_empty = true;
@@ -269,12 +286,17 @@ void CANParser::UpdateCans(uint64_t sec, const capnp::List<CanData>::Reader& can
 #endif
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 void CANParser::UpdateCans(uint64_t nanos, const capnp::DynamicStruct::Reader& cmsg) {
   // assume message struct is `cereal::CanData` and parse
 =======
 void CANParser::UpdateCans(uint64_t sec, const capnp::DynamicStruct::Reader& cmsg) {
   // assume message struct is `CanData` and parse
 >>>>>>> make build independent of comma ecosystem
+=======
+void CANParser::UpdateCans(uint64_t nanos, const capnp::DynamicStruct::Reader& cmsg) {
+  // assume message struct is `cereal::CanData` and parse
+>>>>>>> refactor some
   assert(cmsg.has("address") && cmsg.has("src") && cmsg.has("dat") && cmsg.has("busTime"));
 
   if (cmsg.get("src").as<uint8_t>() != bus) {
@@ -313,6 +335,7 @@ void CANParser::UpdateValid(uint64_t nanos) {
       if (show_missing && !bus_timeout) {
         if (missing) {
 <<<<<<< HEAD
+<<<<<<< HEAD
           LOGE("0x%X '%s' NOT SEEN", state.address, state.name.c_str());
         } else if (timed_out) {
           LOGE("0x%X '%s' TIMED OUT", state.address, state.name.c_str());
@@ -321,6 +344,11 @@ void CANParser::UpdateValid(uint64_t nanos) {
         } else if (timed_out) {
           WARN("0x%X TIMED OUT", state.address);
 >>>>>>> fix build for flowpilot
+=======
+          LOGE("0x%X '%s' NOT SEEN", state.address, state.name.c_str());
+        } else if (timed_out) {
+          LOGE("0x%X '%s' TIMED OUT", state.address, state.name.c_str());
+>>>>>>> refactor some
         }
       }
       _valid = false;
