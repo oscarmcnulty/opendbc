@@ -2,7 +2,7 @@
 import unittest
 import random
 
-from cereal import log
+import cereal.messaging as messaging
 from opendbc.can.parser import CANParser
 from opendbc.can.packer import CANPacker
 from opendbc.can.tests import TEST_DBC
