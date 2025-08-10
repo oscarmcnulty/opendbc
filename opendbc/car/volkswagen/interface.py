@@ -37,6 +37,19 @@ class CarInterface(CarInterfaceBase):
       # Panda ALLOW_DEBUG firmware required.
       ret.dashcamOnly = True
 
+    elif ret.flags & VolkswagenFlags.MLB:
+      # Set global MLB parameters
+      safety_configs = [get_safety_config(structs.CarParams.SafetyModel.volkswagenMlb)]
+      ret.enableBsm = 0x30F in fingerprint[0]  # SWA_01
+
+      # TODO: trans message/gear position ID
+      ret.transmissionType = TransmissionType.automatic
+
+      if any(msg in fingerprint[1] for msg in (0x40, 0x86, 0x103)):  # Airbag_01, LWI_01, ESP_03
+        ret.networkLocation = NetworkLocation.gateway
+      else:
+        ret.networkLocation = NetworkLocation.fwdCamera
+
     else:
       # Set global MQB parameters
       safety_configs = [get_safety_config(structs.CarParams.SafetyModel.volkswagen)]

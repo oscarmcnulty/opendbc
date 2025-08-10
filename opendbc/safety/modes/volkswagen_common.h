@@ -28,17 +28,23 @@ bool volkswagen_resume_button_prev = false;
 #define MSG_LDW_02           0x397U   // TX by OP, Lane line recognition and text alerts
 #define MSG_MOTOR_14         0x3BEU   // RX from ECU, for brake switch status
 
+// MLB only messages
+#define MSG_ESP_03      0x103U   // RX from ABS, for wheel speeds
+#define MSG_LS_01       0x10BU   // TX by OP, ACC control buttons for cancel/resume
+#define MSG_MOTOR_03    0x105U   // RX from ECU, for driver throttle input and brake switch status
+#define MSG_TSK_02      0x10CU   // RX from ECU, for ACC status from drivetrain coordinator
 
-static uint32_t volkswagen_mqb_meb_get_checksum(const CANPacket_t *msg) {
+
+static uint32_t volkswagen_mqb_meb_mlb_get_checksum(const CANPacket_t *msg) {
   return (uint8_t)msg->data[0];
 }
 
-static uint8_t volkswagen_mqb_meb_get_counter(const CANPacket_t *msg) {
+static uint8_t volkswagen_mqb_meb_mlb_get_counter(const CANPacket_t *msg) {
   // MQB/MEB message counters are consistently found at LSB 8.
   return (uint8_t)msg->data[1] & 0xFU;
 }
 
-static uint32_t volkswagen_mqb_meb_compute_crc(const CANPacket_t *msg) {
+static uint32_t volkswagen_mqb_meb_mlb_compute_crc(const CANPacket_t *msg) {
   int len = GET_LEN(msg);
 
   // This is CRC-8H2F/AUTOSAR with a twist. See the opendbc/car/volkswagen/ implementation
@@ -50,7 +56,7 @@ static uint32_t volkswagen_mqb_meb_compute_crc(const CANPacket_t *msg) {
     crc = volkswagen_crc8_lut_8h2f[crc];
   }
 
-  uint8_t counter = volkswagen_mqb_meb_get_counter(msg);
+  uint8_t counter = volkswagen_mqb_meb_mlb_get_counter(msg);
   if (msg->addr == MSG_LH_EPS_03) {
     crc ^= (uint8_t[]){0xF5, 0xF5, 0xF5, 0xF5, 0xF5, 0xF5, 0xF5, 0xF5, 0xF5, 0xF5, 0xF5, 0xF5, 0xF5, 0xF5, 0xF5, 0xF5}[counter];
   } else if (msg->addr == MSG_ESP_05) {
