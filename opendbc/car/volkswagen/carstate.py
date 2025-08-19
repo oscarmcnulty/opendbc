@@ -1,3 +1,4 @@
+import math
 from opendbc.can import CANParser
 from opendbc.car import Bus, structs
 from opendbc.car.interfaces import CarStateBase
@@ -61,7 +62,11 @@ class CarState(CarStateBase):
       )
 
       ret.gasPressed = pt_cp.vl["Motor_03"]["MO_Fahrpedalrohwert_01"] > 0
+      ret.brake = pt_cp.vl["ESP_05"]["ESP_Bremsdruck"]
       brake_pedal_pressed = bool(pt_cp.vl["Motor_03"]["MO_Fahrer_bremst"])
+      brake_pressure_detected = bool(pt_cp.vl["ESP_05"]["ESP_Fahrer_bremst"])
+      ret.brakePressed = brake_pedal_pressed or brake_pressure_detected
+
       ret.espDisabled = pt_cp.vl["ESP_01"]["ESP_Tastung_passiv"] != 0
 
       # TODO: find gearshift signal
@@ -328,7 +333,17 @@ class CarState(CarStateBase):
 
   @staticmethod
   def get_can_parsers_mlb(CP):
-    return {
-      Bus.pt: CANParser(DBC[CP.carFingerprint][Bus.pt], [], CanBus(CP).pt),
-      Bus.cam: CANParser(DBC[CP.carFingerprint][Bus.pt], [], CanBus(CP).cam),
+    parsers = {
+      Bus.pt: CANParser(DBC[CP.carFingerprint][Bus.pt], [
+        # Blinkmodi_01 is sent at 20Hz when indicator is active and not sent otherwise
+        ("Blinkmodi_01", math.nan),
+      ], CanBus(CP).pt),
+      Bus.cam: CANParser(DBC[CP.carFingerprint][Bus.pt], [
+        ("ACC_02", 17), # 16.67Hz
+      ], CanBus(CP).cam),
     }
+
+    # Ignore checksum for ACC_02
+    parsers[Bus.cam].message_states.get(int('30C', 16)).ignore_checksum = True
+
+    return parsers

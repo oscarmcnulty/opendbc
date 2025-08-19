@@ -23,13 +23,56 @@ def create_lka_hud_control(packer, bus, ldw_stock_values, enabled, steering_pres
   return packer.make_can_msg("LDW_02", bus, values)
 
 
-def create_acc_buttons_control(packer, bus, gra_stock_values, counter, cancel=False, resume=False):
+def create_acc_buttons_control(packer, bus, gra_stock_values, cancel=False, resume=False):
   values = gra_stock_values.copy()
 
   values.update({
-    "COUNTER": counter,
+    "COUNTER": (gra_stock_values["COUNTER"] + 1) % 16,
     "LS_Abbrechen": cancel,
     "LS_Tip_Wiederaufnahme": resume,
   })
 
   return packer.make_can_msg("LS_01", bus, values)
+
+
+def acc_control_value(main_switch_on, acc_faulted, long_active):
+  # TODO:
+  return 0
+
+
+def create_acc_accel_control(packer, bus, acc_type, acc_enabled, accel, acc_control, stopping, starting, esp_hold):
+  commands = []
+
+  # TODO
+  """values = {
+    "ACS_Sta_ADR": acc_control,
+    "ACS_StSt_Info": acc_enabled,
+    "ACS_Typ_ACC": acc_type,
+    "ACS_Anhaltewunsch": acc_type == 1 and stopping,
+    "ACS_FreigSollB": acc_enabled,
+    "ACS_Sollbeschl": accel if acc_enabled else 3.01,
+    "ACS_zul_Regelabw": 0.2 if acc_enabled else 1.27,
+    "ACS_max_AendGrad": 3.0 if acc_enabled else 5.08,
+  }
+
+  commands.append(packer.make_can_msg("ACC_System", bus, values))"""
+
+  return commands
+
+
+def acc_hud_status_value(main_switch_on, acc_faulted, long_active):
+  # TODO
+  return 0
+
+
+def create_acc_hud_control(packer, bus, acc_hud_status, set_speed, lead_distance, distance):
+  """values = {
+    "ACC_Status_Anzeige": acc_hud_status,
+    "ACC_Wunschgeschw_02": set_speed if set_speed < 250 else 327.36,
+    "ACC_Gesetzte_Zeitluecke": distance + 2,
+    "ACC_Display_Prio": 3,
+    "ACC_Abstandsindex": lead_distance,
+  }
+
+  return packer.make_can_msg("ACC_02", bus, values)"""
+  return 0
