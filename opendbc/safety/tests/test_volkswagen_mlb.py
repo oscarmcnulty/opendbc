@@ -27,7 +27,7 @@ class TestVolkswagenMlbSafety(common.PandaCarSafetyTest, common.DriverTorqueStee
   MAX_TORQUE_LOOKUP = [0], [300]
   MAX_RT_DELTA = 188
 
-  DRIVER_TORQUE_ALLOWANCE = 60
+  DRIVER_TORQUE_ALLOWANCE = 80
   DRIVER_TORQUE_FACTOR = 3
 
   NO_STEER_REQ_BIT = True  # FIXME: check to see if this is correct
