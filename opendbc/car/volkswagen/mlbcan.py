@@ -1,3 +1,6 @@
+from opendbc.car.volkswagen.mqbcan import crc8h2f_checksum,xor_checksum
+
+
 def create_steering_control(packer, bus, apply_steer, lkas_enabled):
   values = {
     "HCA_01_Status_HCA": 7 if lkas_enabled else 3,
@@ -76,3 +79,11 @@ def create_acc_hud_control(packer, bus, acc_hud_status, set_speed, lead_distance
 
   return packer.make_can_msg("ACC_02", bus, values)"""
   return 0
+
+
+def volkswagen_mlb_checksum(address: int, sig, d: bytearray) -> int:
+  # ACC_02 uses different checksum
+  if address == 0x30C:
+    return xor_checksum(address, sig, d)
+  else:
+    return crc8h2f_checksum(address, sig, d)

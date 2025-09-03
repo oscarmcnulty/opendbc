@@ -333,17 +333,10 @@ class CarState(CarStateBase):
 
   @staticmethod
   def get_can_parsers_mlb(CP):
-    parsers = {
+    return {
       Bus.pt: CANParser(DBC[CP.carFingerprint][Bus.pt], [
         # Blinkmodi_01 is sent at 20Hz when indicator is active and not sent otherwise
         ("Blinkmodi_01", math.nan),
       ], CanBus(CP).pt),
-      Bus.cam: CANParser(DBC[CP.carFingerprint][Bus.pt], [
-        ("ACC_02", 17), # 16.67Hz
-      ], CanBus(CP).cam),
+      Bus.cam: CANParser(DBC[CP.carFingerprint][Bus.pt], [], CanBus(CP).cam),
     }
-
-    # Ignore checksum for ACC_02
-    parsers[Bus.cam].message_states.get(int('30C', 16)).ignore_checksum = True
-
-    return parsers
