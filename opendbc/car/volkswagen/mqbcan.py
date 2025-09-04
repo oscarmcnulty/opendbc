@@ -189,8 +189,8 @@ def crc8h2f_checksum(address: int, sig, d: bytearray) -> int:
   return crc ^ 0xFF
 
 
-def xor_checksum(address: int, sig, d: bytearray) -> int:
-  checksum = 0
+def xor_checksum(address: int, sig, d: bytearray, initial_value: int = 0) -> int:
+  checksum = initial_value
   checksum_byte = sig.start_bit // 8
   for i in range(len(d)):
     if i != checksum_byte:

@@ -84,6 +84,6 @@ def create_acc_hud_control(packer, bus, acc_hud_status, set_speed, lead_distance
 def volkswagen_mlb_checksum(address: int, sig, d: bytearray) -> int:
   # ACC_02 uses different checksum
   if address == 0x30C:
-    return xor_checksum(address, sig, d)
+    return xor_checksum(address, sig, d, 0x0F)
   else:
     return crc8h2f_checksum(address, sig, d)
