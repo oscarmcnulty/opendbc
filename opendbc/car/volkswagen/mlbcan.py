@@ -83,6 +83,7 @@ def create_acc_hud_control(packer, bus, acc_hud_status, set_speed, lead_distance
 
 def volkswagen_mlb_checksum(address: int, sig, d: bytearray) -> int:
   xor_starting_value = {
+    0x109: 0x08, # ACC_01
     0x30C: 0x0F, # ACC_02
     0x324: 0x27, # ACC_04
     0x10D: 0x0C, # ACC_05
