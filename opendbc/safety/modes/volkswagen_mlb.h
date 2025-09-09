@@ -37,6 +37,8 @@ static safety_config volkswagen_mlb_init(uint16_t param) {
 
   UNUSED(param);
 
+  volkswagen_set_button_prev = false;
+  volkswagen_resume_button_prev = false;
   volkswagen_mlb_brake_pedal_switch = false;
   volkswagen_mlb_brake_pressure_detected = false;
 
@@ -97,6 +99,19 @@ static void volkswagen_mlb_rx_hook(const CANPacket_t *msg) {
     }
 
     if (msg->addr == MSG_LS_01) {
+      // If using openpilot longitudinal, enter controls on falling edge of Set or Resume with main switch on
+      // Signal: LS_01.LS_Tip_Setzen
+      // Signal: LS_01.LS_Tip_Wiederaufnahme
+      if (volkswagen_longitudinal) {
+        bool set_button = GET_BIT(msg, 16U);
+        bool resume_button = GET_BIT(msg, 19U);
+        if ((volkswagen_set_button_prev && !set_button) ||
+            (volkswagen_resume_button_prev && !resume_button)) {
+          controls_allowed = GET_BIT(msg, 12U);  // LS_Hauptschalter
+        }
+        volkswagen_set_button_prev = set_button;
+        volkswagen_resume_button_prev = resume_button;
+      }
       // Always exit controls on rising edge of Cancel
       // Signal: LS_01.LS_Abbrechen : 13|1@1+
       if (GET_BIT(msg, 13U) == 1U) {
@@ -137,7 +152,7 @@ static bool volkswagen_mlb_tx_hook(const CANPacket_t *msg) {
   const LongitudinalLimits VOLKSWAGEN_MLB_LONG_LIMITS = {
     .max_accel = 2000,
     .min_accel = -3500,
-    .inactive_accel = 3015,  // VW sends one increment above the max range when inactive
+    .inactive_accel = 0,
   };
 
   bool tx = true;
