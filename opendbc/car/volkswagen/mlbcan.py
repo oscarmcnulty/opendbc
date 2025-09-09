@@ -87,6 +87,7 @@ def volkswagen_mlb_checksum(address: int, sig, d: bytearray) -> int:
     0x30C: 0x0F, # ACC_02
     0x324: 0x27, # ACC_04
     0x10D: 0x0C, # ACC_05
+    0x397: 0x94, # LDW_02
   }
   if address in xor_starting_value:
     return xor_checksum(address, sig, d, xor_starting_value[address])

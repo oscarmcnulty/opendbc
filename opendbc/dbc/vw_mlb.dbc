@@ -801,6 +801,8 @@ BO_ 640 KS_Master: 8 Gateway_D4C7
  SG_ KS_Master_Data : 0|64@1+ (1.0,0.0) [0.0|18446744073709551615] ""  Airbag_D4
 
 BO_ 919 LDW_02: 8 Gateway_D4C7
+ SG_ CHECKSUM : 0|8@1+ (1,0) [0|255] ""  Kombi_D4
+ SG_ COUNTER : 8|4@1+ (1,0) [0|15] ""  Kombi_D4
  SG_ LDW_Gong : 12|2@1+ (1.0,0.0) [0.0|3] ""  Kombi_D4
  SG_ LDW_SW_Warnung_links : 14|1@1+ (1.0,0.0) [0.0|1] ""  Vector__XXX
  SG_ LDW_SW_Warnung_rechts : 15|1@1+ (1.0,0.0) [0.0|1] ""  Vector__XXX
