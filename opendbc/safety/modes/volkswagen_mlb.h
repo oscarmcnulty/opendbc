@@ -16,6 +16,15 @@ static safety_config volkswagen_mlb_init(uint16_t param) {
     {MSG_LDW_02, 0, 8, .check_relay = true}
   };
 
+  static const CanMsg VOLKSWAGEN_MLB_LONG_TX_MSGS[] = {
+    {MSG_HCA_01, 0, 8, .check_relay = true},
+    {MSG_LS_01, 0, 4, .check_relay = false},
+    {MSG_LS_01, 2, 4, .check_relay = false},
+    {MSG_LDW_02, 0, 8, .check_relay = true},
+    {MSG_ACC_02, 0, 8, .check_relay = true},
+    {MSG_ACC_01, 0, 8, .check_relay = true},
+  };
+
   static RxCheck volkswagen_mlb_rx_checks[] = {
     {.msg = {{MSG_ESP_03, 0, 8, .ignore_checksum = true, .max_counter = 15U, .frequency = 50U, .ignore_quality_flag = true}, { 0 }, { 0 }}},
     {.msg = {{MSG_LH_EPS_03, 0, 8, .max_counter = 15U, .frequency = 100U, .ignore_quality_flag = true}, { 0 }, { 0 }}},
@@ -31,8 +40,12 @@ static safety_config volkswagen_mlb_init(uint16_t param) {
   volkswagen_mlb_brake_pedal_switch = false;
   volkswagen_mlb_brake_pressure_detected = false;
 
+#ifdef ALLOW_DEBUG
+  volkswagen_longitudinal = GET_FLAG(param, FLAG_VOLKSWAGEN_LONG_CONTROL);
+#endif
   gen_crc_lookup_table_8(0x2F, volkswagen_crc8_lut_8h2f);
-  return BUILD_SAFETY_CFG(volkswagen_mlb_rx_checks, VOLKSWAGEN_MLB_STOCK_TX_MSGS);
+  return volkswagen_longitudinal ? BUILD_SAFETY_CFG(volkswagen_mlb_rx_checks, VOLKSWAGEN_MLB_LONG_TX_MSGS) : \
+                                   BUILD_SAFETY_CFG(volkswagen_mlb_rx_checks, VOLKSWAGEN_MLB_STOCK_TX_MSGS);
 }
 
 static void volkswagen_mlb_rx_hook(const CANPacket_t *msg) {
@@ -73,7 +86,9 @@ static void volkswagen_mlb_rx_hook(const CANPacket_t *msg) {
       bool cruise_engaged = (acc_status == 1) || (acc_status == 2);
       acc_main_on = cruise_engaged || (acc_status == 0);  // FIXME: this is wrong
 
-      pcm_cruise_check(cruise_engaged);
+      if (!volkswagen_longitudinal) {
+        pcm_cruise_check(cruise_engaged);
+      }
 
       // FIXME: cruise main switch state not yet properly detected
       // if (!acc_main_on) {
@@ -117,6 +132,14 @@ static bool volkswagen_mlb_tx_hook(const CANPacket_t *msg) {
     .type = TorqueDriverLimited,
   };
 
+  // longitudinal limits
+  // acceleration in m/s2 * 1000 to avoid floating point math
+  const LongitudinalLimits VOLKSWAGEN_MLB_LONG_LIMITS = {
+    .max_accel = 2000,
+    .min_accel = -3500,
+    .inactive_accel = 3015,  // VW sends one increment above the max range when inactive
+  };
+
   bool tx = true;
 
   // Safety check for HCA_01 Heading Control Assist torque
@@ -131,6 +154,22 @@ static bool volkswagen_mlb_tx_hook(const CANPacket_t *msg) {
     }
 
     if (steer_torque_cmd_checks(desired_torque, -1, VOLKSWAGEN_MLB_STEERING_LIMITS)) {
+      tx = false;
+    }
+  }
+
+  // Safety check for ACC_01 acceleration request
+  // To avoid floating point math, scale upward and compare to pre-scaled safety m/s^2 boundaries
+  if (msg->addr == MSG_ACC_01) {
+    bool violation = false;
+    int desired_accel = 0;
+
+    // Signal: ACC_01.ACC_Sollbeschleunigung (acceleration in m/s^2, scale 0.005, offset -7.22)
+    desired_accel = ((((msg->data[4] & 0x07U) << 8) | msg->data[3]) * 5U) - 7220U;
+
+    violation |= longitudinal_accel_checks(desired_accel, VOLKSWAGEN_MLB_LONG_LIMITS);
+
+    if (violation) {
       tx = false;
     }
   }

@@ -27,7 +27,12 @@ def create_lka_hud_control(packer, bus, ldw_stock_values, enabled, steering_pres
 
 
 def create_acc_buttons_control(packer, bus, gra_stock_values, cancel=False, resume=False):
-  values = gra_stock_values.copy()
+  values = {s: gra_stock_values[s] for s in [
+    "LS_Hauptschalter",           # ACC button, on/off
+    "LS_Typ_Hauptschalter",       # ACC main button type
+    "LS_Codierung",               # ACC button configuration/coding
+    "LS_Tip_Stufe_2",             # unknown related to stalk type
+  ]}
 
   values.update({
     "COUNTER": (gra_stock_values["COUNTER"] + 1) % 16,
@@ -39,37 +44,43 @@ def create_acc_buttons_control(packer, bus, gra_stock_values, cancel=False, resu
 
 
 def acc_control_value(main_switch_on, acc_faulted, long_active):
-  # TODO:
-  return 0
+  if acc_faulted:
+    acc_control = 6
+  elif long_active:
+    acc_control = 3
+  elif main_switch_on:
+    acc_control = 2
+  else:
+    acc_control = 0
+
+  return acc_control
 
 
 def create_acc_accel_control(packer, bus, acc_type, acc_enabled, accel, acc_control, stopping, starting, esp_hold):
   commands = []
 
-  # TODO
-  """values = {
-    "ACS_Sta_ADR": acc_control,
-    "ACS_StSt_Info": acc_enabled,
-    "ACS_Typ_ACC": acc_type,
-    "ACS_Anhaltewunsch": acc_type == 1 and stopping,
-    "ACS_FreigSollB": acc_enabled,
-    "ACS_Sollbeschl": accel if acc_enabled else 3.01,
-    "ACS_zul_Regelabw": 0.2 if acc_enabled else 1.27,
-    "ACS_max_AendGrad": 3.0 if acc_enabled else 5.08,
+  acc_01_values = {
+    "ACC_Status_ACC": acc_control,
+    "ACC_Sollbeschleunigung": accel if acc_enabled else 3.01,
+    "ACC_zul_Regelabw_unten": 0.2,
+    "ACC_zul_Regelabw_oben": 0.2,
+    "ACC_neg_Sollbeschl_Grad": 4.0 if acc_enabled else 0,
+    "ACC_pos_Sollbeschl_Grad": 4.0 if acc_enabled else 0,
+    "ACC_Dynamik": 2,
+    "ACC_Minimale_Bremsung": 0,
   }
-
-  commands.append(packer.make_can_msg("ACC_System", bus, values))"""
+  commands.append(packer.make_can_msg("ACC_01", bus, acc_01_values))
 
   return commands
 
 
 def acc_hud_status_value(main_switch_on, acc_faulted, long_active):
-  # TODO
-  return 0
+  # TODO: happens to resemble the ACC control value for now, but extend this for init/gas override later
+  return acc_control_value(main_switch_on, acc_faulted, long_active)
 
 
 def create_acc_hud_control(packer, bus, acc_hud_status, set_speed, lead_distance, distance):
-  """values = {
+  values = {
     "ACC_Status_Anzeige": acc_hud_status,
     "ACC_Wunschgeschw_02": set_speed if set_speed < 250 else 327.36,
     "ACC_Gesetzte_Zeitluecke": distance + 2,
@@ -77,8 +88,7 @@ def create_acc_hud_control(packer, bus, acc_hud_status, set_speed, lead_distance
     "ACC_Abstandsindex": lead_distance,
   }
 
-  return packer.make_can_msg("ACC_02", bus, values)"""
-  return 0
+  return packer.make_can_msg("ACC_02", bus, values)
 
 
 def volkswagen_mlb_checksum(address: int, sig, d: bytearray) -> int:
