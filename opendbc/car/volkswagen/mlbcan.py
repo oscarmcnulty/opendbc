@@ -66,8 +66,10 @@ def create_acc_accel_control(packer, bus, acc_type, acc_enabled, accel, acc_cont
     "ACC_zul_Regelabw_oben": 0.2,
     "ACC_neg_Sollbeschl_Grad": 4.0 if acc_enabled else 0,
     "ACC_pos_Sollbeschl_Grad": 4.0 if acc_enabled else 0,
-    "ACC_Dynamik": 3,
-    "ACC_Minimale_Bremsung": 0,
+    "ACC_Anfahren": starting,
+    "ACC_Anhalten": stopping,
+    "ACC_Dynamik": 2,
+    "ACC_Minimale_Bremsung": stopping,
   }
   commands.append(packer.make_can_msg("ACC_01", bus, acc_01_values))
 
@@ -98,6 +100,7 @@ def volkswagen_mlb_checksum(address: int, sig, d: bytearray) -> int:
     0x324: 0x27, # ACC_04
     0x10D: 0x0C, # ACC_05
     0x397: 0x94, # LDW_02
+    0x10C: 0x0D, # TSK_02
   }
   if address in xor_starting_value:
     return xor_checksum(address, sig, d, xor_starting_value[address])

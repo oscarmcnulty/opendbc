@@ -78,25 +78,21 @@ class CarState(CarStateBase):
       #                    pt_cp.vl["Gateway_05"]["HL_Tuer_geoeffnet"],
       #                    pt_cp.vl["Gateway_05"]["HR_Tuer_geoeffnet"]])
 
+      if self.CP.enableBsm:
+        # Infostufe: BSM LED on, Warnung: BSM LED flashing
+        ret.leftBlindspot = bool(ext_cp.vl["SWA_01"]["SWA_Infostufe_SWA_li"]) or bool(ext_cp.vl["SWA_01"]["SWA_Warnung_SWA_li"])
+        ret.rightBlindspot = bool(ext_cp.vl["SWA_01"]["SWA_Infostufe_SWA_re"]) or bool(ext_cp.vl["SWA_01"]["SWA_Warnung_SWA_re"])
+
       # TODO: is this the instantaneous or the comfort blink signal?
       ret.leftBlinker = bool(pt_cp.vl["Blinkmodi_01"]["BM_links"])
       ret.rightBlinker = bool(pt_cp.vl["Blinkmodi_01"]["BM_rechts"])
 
       # Update ACC radar status.
       # TODO: find an explicit ACC main switch state
-      if pt_cp.vl["TSK_02"]["TSK_Status"] == 0:
-        # ACC okay and enabled, but not currently engaged
-        ret.cruiseState.available = True
-        ret.cruiseState.enabled = False
-      elif pt_cp.vl["TSK_02"]["TSK_Status"] in (1, 2):
-        # ACC okay and enabled, currently regulating speed (1) or driver override (2)
-        ret.cruiseState.available = True
-        ret.cruiseState.enabled = True
-      else:
-        # ACC disabled due to error (3)
-        ret.cruiseState.available = False
-        ret.cruiseState.enabled = False
-        ret.accFaulted = True
+      ret.cruiseState.available = pt_cp.vl["TSK_02"]["TSK_Status"] in (0, 1, 2)
+      ret.cruiseState.enabled = pt_cp.vl["TSK_02"]["TSK_Status"] in (1, 2)
+      ret.cruiseState.speed = ext_cp.vl["ACC_02"]["ACC_Wunschgeschw_02"] * CV.KPH_TO_MS if self.CP.pcmCruise else 0
+      ret.accFaulted = pt_cp.vl["TSK_02"]["TSK_Status"] in (3,)
 
       self.acc_type = ext_cp.vl["ACC_02"]["ACC_Typ_Tachokranz"]
 
