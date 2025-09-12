@@ -23,6 +23,7 @@ static safety_config volkswagen_mlb_init(uint16_t param) {
     {MSG_LDW_02, 0, 8, .check_relay = true},
     {MSG_ACC_02, 0, 8, .check_relay = true},
     {MSG_ACC_01, 0, 8, .check_relay = true},
+    {MSG_ACC_05, 0, 8, .check_relay = true},
   };
 
   static RxCheck volkswagen_mlb_rx_checks[] = {
