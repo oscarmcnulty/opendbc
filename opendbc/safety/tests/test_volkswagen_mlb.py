@@ -8,6 +8,7 @@ from opendbc.safety.tests.common import CANPackerPanda
 MAX_ACCEL = 2.0
 MIN_ACCEL = -3.5
 
+MSG_ACC_01 = 0x109      # TX by stock ACC, block this in favor of ACC_05
 MSG_LH_EPS_03 = 0x9F    # RX from EPS, for driver steering torque
 MSG_ESP_03 = 0x103      # RX from ABS, for wheel speeds
 MSG_MOTOR_03 = 0x105    # RX from ECU, for driver throttle input and driver brake input
@@ -122,7 +123,7 @@ class TestVolkswagenMlbSafety(common.PandaCarSafetyTest, common.DriverTorqueStee
 
 class TestVolkswagenMlbStockSafety(TestVolkswagenMlbSafety):
   TX_MSGS = [[MSG_HCA_01, 0], [MSG_LDW_02, 0], [MSG_LS_01, 0], [MSG_LS_01, 2]]
-  FWD_BLACKLISTED_ADDRS = {2: [MSG_HCA_01, MSG_LDW_02]}
+  FWD_BLACKLISTED_ADDRS = {2: [MSG_HCA_01, MSG_LDW_02, MSG_ACC_01]}
   FWD_BUS_LOOKUP = {0: 2, 2: 0}
 
   def setUp(self):

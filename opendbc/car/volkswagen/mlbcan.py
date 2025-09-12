@@ -59,6 +59,26 @@ def acc_control_value(main_switch_on, acc_faulted, long_active):
 def create_acc_accel_control(packer, bus, acc_type, acc_enabled, accel, acc_control, stopping, starting, esp_hold):
   commands = []
 
+  acc_05_values = {
+    "ACC_Freigabe_Momentenanf": 1 if accel > 0 else 0, # increased acceleration requested?
+    "ACC_Freigabe_Verzanf": 1 if accel < 0 else 0, # decreased acceleration requested?
+    "ACC_Getriebestellung_P": 0,
+    "ACC_limitierte_Anfahrdyn": 0,
+    "ACC_Momentenanforderung": int(accel*100) if accel > 0 else 0, # "torque requested",
+    "ACC_zul_Regelabw": 0,
+    "ACC_Verz_anf": accel if accel < 0 else 0, # brake accel requested
+    "ACC_Loeseanforderung": starting, # 1 when starting again from stop
+    "ACC_StartStopp_Info": starting, # 1 when moving, 0 when stopped
+    "ACC_Vorbefuellung_Bremsanlage": 1 if accel < 0 else 0,
+    "ACC_ax_Getriebe": accel, # positive or negative accel requested
+    "ACC_Status_ACC": acc_type,
+    "ACC_Betaetigung_EPB": 0,
+    "ACC_Beeinflussung_ESP": 0,
+    "ACC_Anhalten": stopping,
+    "ACC_KD_Fehler": 0,
+  }
+  commands.append(packer.make_can_msg("ACC_05", bus, acc_05_values))
+
   acc_01_values = {
     "ACC_Status_ACC": acc_control,
     "ACC_Sollbeschleunigung": accel if acc_enabled else 0,

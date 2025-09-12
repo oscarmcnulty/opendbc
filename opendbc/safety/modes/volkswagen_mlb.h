@@ -201,10 +201,19 @@ static bool volkswagen_mlb_tx_hook(const CANPacket_t *msg) {
   return tx;
 }
 
+static bool volkswagen_mlb_fwd_hook(int bus_num, int addr) {
+  // Block ACC_01 messages in order to use ACC_05
+  if (addr == MSG_ACC_01 && bus_num == 2) {
+    return true;
+  }
+  return false;
+}
+
 const safety_hooks volkswagen_mlb_hooks = {
   .init = volkswagen_mlb_init,
   .rx = volkswagen_mlb_rx_hook,
   .tx = volkswagen_mlb_tx_hook,
+  .fwd = volkswagen_mlb_fwd_hook,
   .get_counter = volkswagen_mqb_meb_mlb_get_counter,
   .get_checksum = volkswagen_mqb_meb_mlb_get_checksum,
   .compute_checksum = volkswagen_mqb_meb_mlb_compute_crc,
