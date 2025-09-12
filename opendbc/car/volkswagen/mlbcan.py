@@ -79,7 +79,6 @@ def create_acc_accel_control(packer, bus, acc_type, acc_enabled, accel, acc_cont
   }
   commands.append(packer.make_can_msg("ACC_05", bus, acc_05_values))
 
-  """
   acc_01_values = {
     "ACC_Status_ACC": acc_control,
     "ACC_Sollbeschleunigung": accel if acc_enabled else 0,
@@ -92,7 +91,7 @@ def create_acc_accel_control(packer, bus, acc_type, acc_enabled, accel, acc_cont
     "ACC_Dynamik": 2,
     "ACC_Minimale_Bremsung": stopping,
   }
-  commands.append(packer.make_can_msg("ACC_01", bus, acc_01_values))"""
+  commands.append(packer.make_can_msg("ACC_01", bus, acc_01_values))
 
   return commands
 

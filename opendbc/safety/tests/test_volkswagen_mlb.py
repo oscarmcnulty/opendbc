@@ -123,7 +123,7 @@ class TestVolkswagenMlbSafety(common.PandaCarSafetyTest, common.DriverTorqueStee
 
 class TestVolkswagenMlbStockSafety(TestVolkswagenMlbSafety):
   TX_MSGS = [[MSG_HCA_01, 0], [MSG_LDW_02, 0], [MSG_LS_01, 0], [MSG_LS_01, 2]]
-  FWD_BLACKLISTED_ADDRS = {2: [MSG_HCA_01, MSG_LDW_02, MSG_ACC_01]}
+  FWD_BLACKLISTED_ADDRS = {2: [MSG_HCA_01, MSG_LDW_02]}
   FWD_BUS_LOOKUP = {0: 2, 2: 0}
 
   def setUp(self):
