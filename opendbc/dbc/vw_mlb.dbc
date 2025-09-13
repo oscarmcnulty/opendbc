@@ -100,6 +100,30 @@ BO_ 269 ACC_05: 8 Gateway_D4C7
  SG_ ACC_Anhalten : 62|1@1+ (1.0,0.0) [0.0|1] ""  Vector__XXX
  SG_ ACC_KD_Fehler : 63|1@1+ (1.0,0.0) [0.0|1] ""  Vector__XXX
 
+BO_ 279 ACC_10: 8 XXX
+ SG_ CHECKSUM : 0|8@1+ (1,0) [0|255] "" XXX
+ SG_ COUNTER : 8|4@1+ (1,0) [0|15] "" XXX
+ SG_ AWV1_Anf_Prefill : 16|1@1+ (1,0) [0|1] "" XXX
+ SG_ ANB_CM_Info : 17|1@1+ (1,0) [0|1] "" XXX
+ SG_ AWV2_Freigabe : 18|1@1+ (1,0) [0|1] "" XXX
+ SG_ AWV1_HBA_Param : 19|2@1+ (1,0) [0|3] "" XXX
+ SG_ AWV2_Ruckprofil : 21|3@1+ (1,0) [0|7] "" XXX
+ SG_ AWV2_Priowarnung : 24|1@1+ (1,0) [0|1] "" XXX
+ SG_ ANB_CM_Anforderung : 25|1@1+ (1,0) [0|1] "" XXX
+ SG_ ANB_Info_Teilbremsung : 26|1@1+ (1,0) [0|1] "" XXX
+ SG_ ANB_Notfallblinken : 27|1@1+ (1,0) [0|1] "" XXX
+ SG_ ANB_Teilbremsung_Freigabe : 28|1@1+ (1,0) [0|1] "" XXX
+ SG_ ANB_Zielbrems_Teilbrems_Verz_Anf : 29|10@1+ (0.024,-20.016) [-20.016|4.536] "Unit_MeterPerSeconSquar" XXX
+ SG_ ANB_Zielbremsung_Freigabe : 39|1@1+ (1,0) [0|1] "" XXX
+ SG_ AWV_Vorstufe : 40|1@1+ (1,0) [0|1] "" XXX
+ SG_ AWV_Halten : 41|1@1+ (1,0) [0|1] "" XXX
+ SG_ AWV_CityANB_Auspraegung : 42|1@1+ (1,0) [0|1] "" XXX
+ SG_ PCF_Freigabe : 43|1@1+ (1,0) [0|1] "" XXX
+ SG_ AWV1_ECD_Anlauf : 44|1@1+ (1,0) [0|1] "" XXX
+ SG_ AWV_AWA_VZ_Anf_Lenkmomoffset : 46|1@1+ (1,0) [0|1] "" XXX
+ SG_ AWV_AWA_Anf_Lenkmomoffset : 47|9@1+ (0.01,0) [0|5.11] "Unit_NewtoMeter" XXX
+ SG_ PCF_Time_to_collision : 56|8@1+ (0.01,0) [0|2.5] "Unit_Secon" XXX
+
 BO_ 785 ACC_0x311: 4 Gateway_D4C7
  SG_ CHECKSUM : 0|8@1+ (1,0) [0|15] "" Vector_XXX
  SG_ COUNTER : 8|4@1+ (1,0) [0|15] "" Vector_XXX
@@ -707,6 +731,8 @@ BO_ 1875 ISO_Waehlhebel_Req: 8 Gateway_D4C7
 BO_ 1981 ISO_Waehlhebel_Resp: 8 Getriebe_AL551_951_D4_C7
  SG_ ISO_Waehlhebel_Resp_Data : 0|64@1+ (1.0,0.0) [0.0|18446744073709551615] ""  Gateway_D4C7
 
+BO_ 792 Kamera_Status: 8 XXX
+
 BO_ 1424 Kessy_02: 8 Gateway_D4C7
  SG_ KY_Funkschl_Nr : 0|4@1+ (1.0,0.0) [0.0|15] ""  Vector__XXX
  SG_ KY_ID_Geb_autorisiert : 4|1@1+ (1.0,0.0) [0.0|1] ""  Vector__XXX
@@ -1005,6 +1031,8 @@ BO_ 134 LWI_01: 8 LWS_D4
  SG_ LWI_Sub_Daten : 40|16@1+ (1,0) [0|65535] ""  ESP_D4,Gateway_D4C7,QSP_D4,SCU_D4
  SG_ LWI_01_CRC : 56|8@1+ (1,0) [0|255] ""  Airbag_D4,ESP_D4,Gateway_D4C7,QSP_D4,SCU_D4
 
+BO_ 917 LWR_AFS_01: 8 XXX
+
 BO_ 128 Motor_01: 8 Motor_EDC17_D4
  SG_ Motor_01_CHK : 0|8@1+ (1,0) [0|255] ""  EPB_D4,Gateway_D4C7,Getriebe_AL551_951_D4_C7,Getriebe_DL501_C7,Getriebe_VL381_C7
  SG_ Motor_01_BZ : 8|4@1+ (1,0) [0|15] ""  EPB_D4,Gateway_D4C7,Getriebe_AL551_951_D4_C7,Getriebe_DL501_C7,Getriebe_VL381_C7
@@ -1219,6 +1247,30 @@ BO_ 1601 Motor_Code_01: 8 Motor_EDC17_D4
 
 BO_ 969 MotorSlave_01: 1 Motor_Slave_D4
  SG_ MOS_KD_Fehler : 0|1@1+ (1.0,0.0) [0.0|1] ""  Gateway_D4C7
+
+BO_ 1594 MSG_63A: 8 Gateway_D4C7
+ SG_ MSG_63A_Byte_0 : 0|8@1+ (1,0) [0|255] ""  Vector__XXX
+ SG_ MSG_63A_Byte_1 : 8|8@1+ (1,0) [0|255] ""  Vector__XXX
+ SG_ MSG_63A_Byte_2 : 16|8@1+ (1,0) [0|255] ""  Vector__XXX
+ SG_ MSG_63A_Byte_3 : 24|8@1+ (1,0) [0|255] ""  Vector__XXX
+
+BO_ 1595 MSG_63B: 8 Gateway_D4C7
+ SG_ MSG_63B_Byte_0 : 0|8@1+ (1,0) [0|255] ""  Vector__XXX
+ SG_ MSG_63B_Byte_1 : 8|8@1+ (1,0) [0|255] ""  Vector__XXX
+ SG_ MSG_63B_Byte_2 : 16|8@1+ (1,0) [0|255] ""  Vector__XXX
+ SG_ MSG_63B_Byte_3 : 24|8@1+ (1,0) [0|255] ""  Vector__XXX
+
+BO_ 1596 MSG_63C: 8 Gateway_D4C7
+ SG_ MSG_63C_Byte_0 : 0|8@1+ (1,0) [0|255] ""  Vector__XXX
+ SG_ MSG_63C_Byte_1 : 8|8@1+ (1,0) [0|255] ""  Vector__XXX
+ SG_ MSG_63C_Byte_2 : 16|8@1+ (1,0) [0|255] ""  Vector__XXX
+ SG_ MSG_63C_Byte_3 : 24|8@1+ (1,0) [0|255] ""  Vector__XXX
+
+BO_ 1597 MSG_63D: 8 Gateway_D4C7
+ SG_ MSG_63D_Byte_0 : 0|8@1+ (1,0) [0|255] ""  Vector__XXX
+ SG_ MSG_63D_Byte_1 : 8|8@1+ (1,0) [0|255] ""  Vector__XXX
+ SG_ MSG_63D_Byte_2 : 16|8@1+ (1,0) [0|255] ""  Vector__XXX
+ SG_ MSG_63D_Byte_3 : 24|8@1+ (1,0) [0|255] ""  Vector__XXX
 
 BO_ 1696 NightVision_01: 8 Gateway_D4C7
  SG_ NV_aktiv : 12|1@1+ (1.0,0.0) [0.0|1] ""  Airbag_D4

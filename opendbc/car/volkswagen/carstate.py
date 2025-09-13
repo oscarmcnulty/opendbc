@@ -63,7 +63,7 @@ class CarState(CarStateBase):
 
       ret.gasPressed = pt_cp.vl["Motor_03"]["MO_Fahrpedalrohwert_01"] > 0
       ret.brake = pt_cp.vl["ESP_05"]["ESP_Bremsdruck"]
-      brake_pedal_pressed = bool(pt_cp.vl["Motor_03"]["MO_Fahrer_bremst"])
+      brake_pedal_pressed = bool(pt_cp.vl["Motor_03"]["MO_BLS"])
       brake_pressure_detected = bool(pt_cp.vl["ESP_05"]["ESP_Fahrer_bremst"])
       ret.brakePressed = brake_pedal_pressed or brake_pressure_detected
 
@@ -91,7 +91,7 @@ class CarState(CarStateBase):
       # TODO: find an explicit ACC main switch state
       ret.cruiseState.available = pt_cp.vl["TSK_02"]["TSK_Status"] in (0, 1, 2)
       ret.cruiseState.enabled = pt_cp.vl["TSK_02"]["TSK_Status"] in (1, 2)
-      ret.cruiseState.speed = ext_cp.vl["ACC_02"]["ACC_Wunschgeschw_02"] * CV.KPH_TO_MS if self.CP.pcmCruise else 0
+      ret.cruiseState.speed = ext_cp.vl["ACC_02"]["ACC_Wunschgeschw_02"] * CV.KPH_TO_MS
       ret.accFaulted = pt_cp.vl["TSK_02"]["TSK_Status"] in (3,)
 
       self.acc_type = ext_cp.vl["ACC_02"]["ACC_Typ_Tachokranz"]
