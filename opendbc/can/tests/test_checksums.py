@@ -657,6 +657,26 @@ class TestCanChecksums:
     b'\x2e\x1f\x96\x00\xa4\x0d\x84\x86',
     ])
 
+  def test_volkswagen_mlb_crc_acc_0x311(self, subtests):
+    self.verify_volkswagen_mlb_crc(subtests, "ACC_0x311", 0x311, [
+        b'\x99\x10\x93\x08',
+        b'\x98\x11\x93\x08',
+        b'\x9B\x12\x93\x08',
+        b'\x9A\x13\x93\x08',
+        b'\x9D\x14\x93\x08',
+        b'\x9C\x15\x93\x08',
+        b'\x9F\x16\x93\x08',
+        b'\x9E\x17\x93\x08',
+        b'\x91\x18\x93\x08',
+        b'\x90\x19\x93\x08',
+        b'\x93\x1A\x93\x08',
+        b'\x92\x1B\x93\x08',
+        b'\x95\x1C\x93\x08',
+        b'\x94\x1D\x93\x08',
+        b'\x97\x1E\x93\x08',
+        b'\x96\x1F\x93\x08',
+    ])
+
   def test_volkswagen_mlb_crc_ldw_02(self, subtests):
     self.verify_volkswagen_mlb_crc(subtests, "LDW_02", 0x397, [
     b'\xaa\x80\x10\x00\x00\xb0\x1e\x00',
