@@ -124,6 +124,13 @@ BO_ 279 ACC_10: 8 XXX
  SG_ AWV_AWA_Anf_Lenkmomoffset : 47|9@1+ (0.01,0) [0|5.11] "Unit_NewtoMeter" XXX
  SG_ PCF_Time_to_collision : 56|8@1+ (0.01,0) [0|2.5] "Unit_Secon" XXX
 
+BO_ 271 ACC_0x10F: 4 Gateway_D4C7
+ SG_ CHECKSUM : 0|8@1+ (1,0) [0|15] "" Vector_XXX
+ SG_ COUNTER : 8|4@1+ (1,0) [0|15] "" Vector_XXX
+ SG_ ACC_10F_Byte1_remaining : 12|4@1+ (1,0) [0|15] "" Vector_XXX
+ SG_ ACC_10F_Byte2 : 16|8@1+ (1,0) [0|15] "" XXX
+ SG_ ACC_10F_Byte3 : 24|8@1+ (1,0) [0|15] "" XXX
+
 BO_ 785 ACC_0x311: 4 Gateway_D4C7
  SG_ CHECKSUM : 0|8@1+ (1,0) [0|15] "" Vector_XXX
  SG_ COUNTER : 8|4@1+ (1,0) [0|15] "" Vector_XXX
