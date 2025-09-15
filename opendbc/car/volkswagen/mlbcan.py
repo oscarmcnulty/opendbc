@@ -1,3 +1,4 @@
+from opendbc.car.common.conversions import Conversions as CV
 from opendbc.car.volkswagen.mqbcan import crc8h2f_checksum,xor_checksum
 
 
@@ -56,7 +57,7 @@ def acc_control_value(main_switch_on, acc_faulted, long_active):
   return acc_control
 
 
-def create_acc_accel_control(packer, bus, acc_type, acc_enabled, accel, acc_control, stopping, starting, esp_hold):
+def create_acc_accel_control(packer, bus, acc_type, acc_enabled, accel, acc_control, stopping, starting, esp_hold, v_ego):
   commands = []
 
   acc_05_values = {
@@ -92,6 +93,15 @@ def create_acc_accel_control(packer, bus, acc_type, acc_enabled, accel, acc_cont
     "ACC_Minimale_Bremsung": stopping,
   }
   commands.append(packer.make_can_msg("ACC_01", bus, acc_01_values))
+
+  acc_10_values = {}
+  if v_ego * CV.MS_TO_KPH < 15.0 and accel < 0:
+    acc_10_values.update({
+      "ANB_Zielbrems_Teilbrems_Verz_Anf": accel if acc_enabled else 0,
+      #"ANB_Zielbremsung_Freigabe": 1 if acc_enabled else 0, # Full braking
+      "ANB_Teilbremsung_Freigabe": 1 if acc_enabled else 0, # Partial braking
+    })
+  commands.append(packer.make_can_msg("ACC_10", bus, acc_10_values))
 
   return commands
 

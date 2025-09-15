@@ -497,6 +497,8 @@ BO_ 1623 ESP_17: 8 ESP_D4
  SG_ ESP_17_BZ : 8|4@1+ (1,0) [0|15] ""  EPB_D4
  SG_ ESP_BremsenTemp_hinten : 12|3@1+ (1.0,0.0) [0.0|7] ""  EPB_D4
 
+BO_ 1605 FLA_01: 8 XXX
+
 BO_ 924 Gateway_05: 8 Gateway_D4C7
  SG_ BCM1_02_alt : 0|1@1+ (1.0,0.0) [0.0|1] ""  Motor_EDC17_D4,Motor_ME17_BY,Motor_MED17_SIMOS8_D4
  SG_ Wischer_01_alt : 1|1@1+ (1.0,0.0) [0.0|1] ""  Motor_EDC17_D4,Motor_ME17_BY,Motor_MED17_SIMOS8_D4
