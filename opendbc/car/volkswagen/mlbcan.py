@@ -94,12 +94,16 @@ def create_acc_accel_control(packer, bus, acc_type, acc_enabled, accel, acc_cont
   }
   commands.append(packer.make_can_msg("ACC_01", bus, acc_01_values))
 
-  acc_10_values = {}
+  acc_10_values = {
+    "ANB_Zielbrems_Teilbrems_Verz_Anf": 0,
+    "ANB_Zielbremsung_Freigabe": 0,
+    "ANB_Teilbremsung_Freigabe": 0,
+  }
   if v_ego * CV.MS_TO_KPH < 15.0 and accel < 0:
     acc_10_values.update({
       "ANB_Zielbrems_Teilbrems_Verz_Anf": accel if acc_enabled else 0,
-      #"ANB_Zielbremsung_Freigabe": 1 if acc_enabled else 0, # Full braking
-      "ANB_Teilbremsung_Freigabe": 1 if acc_enabled else 0, # Partial braking
+      "ANB_Zielbremsung_Freigabe": 1 if acc_enabled else 0, # Full braking
+      #"ANB_Teilbremsung_Freigabe": 1 if acc_enabled else 0, # Partial braking
     })
   commands.append(packer.make_can_msg("ACC_10", bus, acc_10_values))
 
@@ -119,7 +123,7 @@ def create_acc_hud_control(packer, bus, acc_hud_status, set_speed, lead_distance
     "ACC_Anzeige_Zeitluecke": 1 if acc_hud_status == 3 else 0,
     "ACC_Gesetzte_Zeitluecke": distance,
     "ACC_Tachokranz": 1 if acc_hud_status == 3 else 0,
-    "ACC_Relevantes_Objekt": 2 if visualalert == 1 else (1 if leadvisible else 0), # 2 = Red car alert, 1 = Car visible, 0 = No car visible
+    "ACC_Relevantes_Objekt": 2 if visualalert == 1 else (1 if leadvisible and acc_hud_status == 3 else 0), # 2 = Red car alert, 1 = Car visible, 0 = No car visible
     "ACC_Status_Prim_Anz": 2 if visualalert == 1 else (1 if acc_hud_status == 3 else 0), # 2 = Red symbol, 1 = Green symbol, 0 = Symbol off
     "ACC_Akustik": 1 if audiblealert == 5 else 0, # 1 = Gong
     "ACC_Abstandsindex": 1023 if acc_hud_status == 3 else 1022,
