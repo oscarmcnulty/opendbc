@@ -111,13 +111,20 @@ def acc_hud_status_value(main_switch_on, acc_faulted, long_active):
   return acc_control_value(main_switch_on, acc_faulted, long_active)
 
 
-def create_acc_hud_control(packer, bus, acc_hud_status, set_speed, lead_distance, distance):
+def create_acc_hud_control(packer, bus, acc_hud_status, set_speed, lead_distance, distance, speedvisible, leadvisible, visualalert, audiblealert, hudtext):
   values = {
     "ACC_Status_Anzeige": acc_hud_status,
-    "ACC_Wunschgeschw_02": set_speed if set_speed < 250 else 327.36,
-    "ACC_Gesetzte_Zeitluecke": distance + 2,
-    "ACC_Display_Prio": 3,
-    "ACC_Abstandsindex": lead_distance,
+    "ACC_Wunschgeschw_02": set_speed if set_speed < 250 else 327.04,
+    "ACC_Display_Prio": 1 if acc_hud_status == 3 else 0, # Prio? 0 = Very close to car, 3 = furthest
+    "ACC_Anzeige_Zeitluecke": 1 if acc_hud_status == 3 else 0,
+    "ACC_Gesetzte_Zeitluecke": distance,
+    "ACC_Tachokranz": 1 if acc_hud_status == 3 else 0,
+    "ACC_Relevantes_Objekt": 2 if visualalert == 1 else (1 if leadvisible else 0), # 2 = Red car alert, 1 = Car visible, 0 = No car visible
+    "ACC_Status_Prim_Anz": 2 if visualalert == 1 else (1 if acc_hud_status == 3 else 0), # 2 = Red symbol, 1 = Green symbol, 0 = Symbol off
+    "ACC_Akustik": 1 if audiblealert == 5 else 0, # 1 = Gong
+    "ACC_Abstandsindex": 1023 if acc_hud_status == 3 else 1022,
+    "ACC_Texte_Primaeranz": hudtext,
+
   }
 
   return packer.make_can_msg("ACC_02", bus, values)

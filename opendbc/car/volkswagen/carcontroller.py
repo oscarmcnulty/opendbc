@@ -36,6 +36,12 @@ class CarController(CarControllerBase):
     self.hca_frame_low_torque = 0
     self.hca_frame_same_torque = 0
 
+    # MLB hud text
+    self.last_set_speed = 0
+    self.last_distance = 0
+    self.hudtext = 0
+    self.texte_timer = 0
+
   def update(self, CC, CS, now_nanos):
     actuators = CC.actuators
     hud_control = CC.hudControl
@@ -137,8 +143,22 @@ class CarController(CarControllerBase):
       # FIXME: PQ may need to use the on-the-wire mph/kmh toggle to fix rounding errors
       # FIXME: Detect clusters with vEgoCluster offsets and apply an identical vCruiseCluster offset
       set_speed = hud_control.setSpeed * CV.MS_TO_KPH
+
+      # MLB:Logic for hud text, bottom acc text display
+      if self.CP.flags & VolkswagenFlags.MLB:
+        if (hud_control.speedVisible and set_speed != self.last_set_speed) or (hud_control.leadVisible and hud_control.leadDistanceBars != self.last_distance):
+          self.texte_timer = self.frame + int(2.0 / DT_CTRL)
+          hudtext = 21 if hud_control.speedVisible else {1: 2, 2: 3, 3: 4, 4: 5}.get(hud_control.leadDistanceBars, 0)
+        elif self.frame < self.texte_timer:
+          hudtext = getattr(self, "hudtext", 0)
+        else:
+          hudtext = 0
+        self.last_set_speed = set_speed
+        self.last_distance = hud_control.leadDistanceBars
+        self.hudtext = hudtext
+
       can_sends.append(self.CCS.create_acc_hud_control(self.packer_pt, self.CAN.pt, acc_hud_status, set_speed,
-                                                       lead_distance, hud_control.leadDistanceBars))
+                                                       lead_distance, hud_control.leadDistanceBars, hud_control.speedVisible, hud_control.leadVisible, hud_control.visualAlert, hud_control.audibleAlert, self.hudtext))
 
     # **** Stock ACC Button Controls **************************************** #
 
