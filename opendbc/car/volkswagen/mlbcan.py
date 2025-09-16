@@ -71,7 +71,7 @@ def create_acc_accel_control(packer, bus, acc_type, acc_enabled, accel, acc_cont
     "ACC_StartStopp_Info": starting, # 1 when moving, 0 when stopped
     "ACC_Vorbefuellung_Bremsanlage": 1 if accel < 0 else 0,
     "ACC_ax_Getriebe": accel, # positive or negative accel requested
-    "ACC_Status_ACC": acc_type,
+    "ACC_Status_ACC": acc_control,
     "ACC_Betaetigung_EPB": 0,
     "ACC_Beeinflussung_ESP": 0,
     "ACC_Anhalten": stopping,
@@ -101,13 +101,21 @@ def acc_hud_status_value(main_switch_on, acc_faulted, long_active):
   return acc_control_value(main_switch_on, acc_faulted, long_active)
 
 
-def create_acc_hud_control(packer, bus, acc_hud_status, set_speed, lead_distance, distance):
+def create_acc_hud_control(packer, bus, acc_hud_status, set_speed, lead_distance, hud_control, mlb_hud_text):
+
+  acc_active = True if acc_hud_status in (3,4) else False
   values = {
     "ACC_Status_Anzeige": acc_hud_status,
-    "ACC_Wunschgeschw_02": set_speed if set_speed < 250 else 327.36,
-    "ACC_Gesetzte_Zeitluecke": distance + 2,
-    "ACC_Display_Prio": 3,
-    "ACC_Abstandsindex": lead_distance,
+    "ACC_Wunschgeschw_02": set_speed if set_speed < 250 else 327.04,
+    "ACC_Display_Prio": 0,
+    "ACC_Anzeige_Zeitluecke": 1 if acc_active else 0,
+    "ACC_Gesetzte_Zeitluecke": hud_control.leadDistanceBars, # TODO: Update openpilot charisma using stock rocker switch
+    "ACC_Tachokranz": 1 if acc_active else 0,
+    "ACC_Relevantes_Objekt": 2 if hud_control.visualAlert > 0 else (1 if acc_active and hud_control.leadVisible else 0),
+    "ACC_Status_Prim_Anz": 2 if hud_control.visualAlert > 0 else (1 if acc_active else 0),
+    "ACC_Akustik": 1 if hud_control.audibleAlert == 5 else 0, # Audible alert on OP warningImmediate
+    "ACC_Abstandsindex": 1023 if acc_active else 1022,
+    "ACC_Texte_Primaeranz": mlb_hud_text,
   }
 
   return packer.make_can_msg("ACC_02", bus, values)

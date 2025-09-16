@@ -91,10 +91,10 @@ class CarState(CarStateBase):
       # TODO: find an explicit ACC main switch state
       ret.cruiseState.available = pt_cp.vl["TSK_02"]["TSK_Status"] in (0, 1, 2)
       ret.cruiseState.enabled = pt_cp.vl["TSK_02"]["TSK_Status"] in (1, 2)
-      ret.cruiseState.speed = ext_cp.vl["ACC_02"]["ACC_Wunschgeschw_02"] * CV.KPH_TO_MS
       ret.accFaulted = pt_cp.vl["TSK_02"]["TSK_Status"] in (3,)
+      ret.cruiseState.speed = ext_cp.vl["ACC_02"]["ACC_Wunschgeschw_02"] * CV.KPH_TO_MS if self.CP.pcmCruise else 0
 
-      self.acc_type = ext_cp.vl["ACC_02"]["ACC_Typ_Tachokranz"]
+      self.acc_type = 0
 
       self.gra_stock_values = pt_cp.vl["LS_01"]
 
