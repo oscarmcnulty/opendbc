@@ -27,10 +27,20 @@ class CarController(CarControllerBase):
       self.CCS = mqbcan
 
     self.apply_torque_last = 0
+    self.torque_output_can_last = 0
     self.gra_acc_counter_last = None
+    self.frame = 0
+    self.eps_timer_workaround = CP.flags & VolkswagenFlags.MLB
     self.eps_timer_soft_disable_alert = False
     self.hca_frame_timer_running = 0
+    self.hca_frame_timer_resetting = 0
+    self.hca_frame_low_torque = 0
     self.hca_frame_same_torque = 0
+
+    self.last_set_speed = 0
+    self.last_lead_distance_bars = 0
+    self.mlb_hud_text = 0
+    self.texte_timer = 0
 
   def update(self, CC, CS, now_nanos):
     actuators = CC.actuators
@@ -61,16 +71,34 @@ class CarController(CarControllerBase):
         else:
           self.hca_frame_same_torque = 0
         hca_enabled = abs(apply_torque) > 0
+        if self.eps_timer_workaround and self.hca_frame_timer_running >= self.CCP.STEER_TIME_BM / DT_CTRL:
+          if abs(apply_torque) <= self.CCP.STEER_LOW_TORQUE:
+            self.hca_frame_low_torque += self.CCP.STEER_STEP
+            if self.hca_frame_low_torque >= self.CCP.STEER_TIME_LOW_TORQUE / DT_CTRL:
+              hca_enabled = False
+          else:
+            self.hca_frame_low_torque = 0
+            if self.hca_frame_timer_resetting > 0:
+              apply_torque = 0
       else:
+        self.hca_frame_low_torque = 0
         hca_enabled = False
         apply_torque = 0
 
-      if not hca_enabled:
-        self.hca_frame_timer_running = 0
+      torque_output_can = 0
+      if hca_enabled:
+        torque_output_can = apply_torque
+        self.hca_frame_timer_resetting = 0
+      else:
+        self.hca_frame_timer_resetting += self.CCP.STEER_STEP
+        if self.hca_frame_timer_resetting >= self.CCP.STEER_TIME_RESET / DT_CTRL or not self.eps_timer_workaround:
+          self.hca_frame_timer_running = 0
+          apply_torque = 0
 
       self.eps_timer_soft_disable_alert = self.hca_frame_timer_running > self.CCP.STEER_TIME_ALERT / DT_CTRL
       self.apply_torque_last = apply_torque
-      can_sends.append(self.CCS.create_steering_control(self.packer_pt, self.CAN.pt, apply_torque, hca_enabled))
+      self.torque_output_can_last = torque_output_can
+      can_sends.append(self.CCS.create_steering_control(self.packer_pt, self.CAN.pt, torque_output_can, hca_enabled))
 
       if self.CP.flags & VolkswagenFlags.STOCK_HCA_PRESENT:
         # Pacify VW Emergency Assist driver inactivity detection by changing its view of driver steering input torque
@@ -115,8 +143,22 @@ class CarController(CarControllerBase):
       # FIXME: PQ may need to use the on-the-wire mph/kmh toggle to fix rounding errors
       # FIXME: Detect clusters with vEgoCluster offsets and apply an identical vCruiseCluster offset
       set_speed = hud_control.setSpeed * CV.MS_TO_KPH
+
+      # MLB:Logic for hud text, bottom acc text display
+      if self.CP.flags & VolkswagenFlags.MLB:
+        if set_speed != self.last_set_speed:
+          self.texte_timer = self.frame + int(2.0 / DT_CTRL)
+          self.mlb_hud_text = 21
+          self.last_set_speed = set_speed
+        elif hud_control.leadDistanceBars != self.last_lead_distance_bars:
+          self.texte_timer = self.frame + int(2.0 / DT_CTRL)
+          self.mlb_hud_text = {1: 2, 2: 3, 3: 4, 4: 5}.get(hud_control.leadDistanceBars, 0)
+          self.last_lead_distance_bars = hud_control.leadDistanceBars
+        elif self.frame > self.texte_timer:
+          self.mlb_hud_text = 0
+
       can_sends.append(self.CCS.create_acc_hud_control(self.packer_pt, self.CAN.pt, acc_hud_status, set_speed,
-                                                       lead_distance, hud_control.leadDistanceBars))
+                                                       lead_distance, hud_control, self.mlb_hud_text))
 
     # **** Stock ACC Button Controls **************************************** #
 
@@ -127,7 +169,7 @@ class CarController(CarControllerBase):
 
     new_actuators = actuators.as_builder()
     new_actuators.torque = self.apply_torque_last / self.CCP.STEER_MAX
-    new_actuators.torqueOutputCan = self.apply_torque_last
+    new_actuators.torqueOutputCan = self.torque_output_can_last
 
     self.gra_acc_counter_last = CS.gra_stock_values["COUNTER"]
     self.frame += 1

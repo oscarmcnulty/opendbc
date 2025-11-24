@@ -128,11 +128,11 @@ def create_acc_accel_control(packer, bus, acc_type, acc_enabled, accel, acc_cont
   return commands
 
 
-def create_acc_hud_control(packer, bus, acc_hud_status, set_speed, lead_distance, distance):
+def create_acc_hud_control(packer, bus, acc_hud_status, set_speed, lead_distance, hud_control, mlb_hud_text):
   values = {
     "ACC_Status_Anzeige": acc_hud_status,
     "ACC_Wunschgeschw_02": set_speed if set_speed < 250 else 327.36,
-    "ACC_Gesetzte_Zeitluecke": distance + 2,
+    "ACC_Gesetzte_Zeitluecke": hud_control.leadDistanceBars + 2,
     "ACC_Display_Prio": 3,
     "ACC_Abstandsindex": lead_distance,
   }
@@ -173,12 +173,16 @@ def create_aeb_hud(packer, aeb_supported, fcw_active):
 
 
 def volkswagen_mqb_meb_checksum(address: int, sig, d: bytearray) -> int:
+  return crc8h2f_checksum(address, sig, d)
+
+
+def crc8h2f_checksum(address: int, sig, d: bytearray) -> int:
   crc = 0xFF
   for i in range(1, len(d)):
     crc ^= d[i]
     crc = CRC8H2F[crc]
   counter = d[1] & 0x0F
-  const = VOLKSWAGEN_MQB_MEB_CONSTANTS.get(address)
+  const = VOLKSWAGEN_MQB_MEB_MLB_CONSTANTS.get(address)
   if const:
     crc ^= const[counter]
     crc = CRC8H2F[crc]
@@ -194,7 +198,7 @@ def xor_checksum(address: int, sig, d: bytearray, initial_value: int = 0) -> int
   return checksum
 
 
-VOLKSWAGEN_MQB_MEB_CONSTANTS: dict[int, list[int]] = {
+VOLKSWAGEN_MQB_MEB_MLB_CONSTANTS: dict[int, list[int]] = {
     0x40:  [0x40] * 16,  # Airbag_01
     0x86:  [0x86] * 16,  # LWI_01
     0x9F:  [0xF5] * 16,  # LH_EPS_03
