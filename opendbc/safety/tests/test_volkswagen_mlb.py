@@ -5,6 +5,10 @@ from opendbc.safety.tests.libsafety import libsafety_py
 import opendbc.safety.tests.common as common
 from opendbc.safety.tests.common import CANPackerSafety
 
+MAX_ACCEL = 2.0
+MIN_ACCEL = -3.5
+
+MSG_ACC_01 = 0x109      # TX by stock ACC, for longitudinal drivetrain control
 MSG_LH_EPS_03 = 0x9F    # RX from EPS, for driver steering torque
 MSG_ESP_03 = 0x103      # RX from ABS, for wheel speeds
 MSG_MOTOR_03 = 0x105    # RX from ECU, for driver throttle input and driver brake input
@@ -52,8 +56,11 @@ class TestVolkswagenMlbSafetyBase(common.CarSafetyTest, common.DriverTorqueSteer
 
   # ACC engagement status
   def _tsk_status_msg(self, enable, main_switch=True):
-    values = {"ACC_Status_ACC": 1 if not main_switch else 3 if enable else 2}
-    return self.packer.make_can_msg_safety("ACC_05", 2, values)
+    #values = {"ACC_Status_ACC": 1 if not main_switch else 3 if enable else 2}
+    #return self.packer.make_can_msg_safety("ACC_05", 2, values)
+    # TODO: implement main switch detection
+    values = {"TSK_Status": 1 if enable else 0}
+    return self.packer.make_can_msg_safety("TSK_02", 0, values)
 
   def _pcm_status_msg(self, enable):
     return self._tsk_status_msg(enable)

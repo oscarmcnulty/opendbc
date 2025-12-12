@@ -61,8 +61,12 @@ class CarControllerParams:
   STEER_DRIVER_FACTOR = 1                  # from dbc
 
   STEER_TIME_MAX = 360                     # Max time that EPS allows uninterrupted HCA steering control
+  STEER_TIME_BM = STEER_TIME_MAX - 120     # Attempts to mitigate the EPS max steer timer begin
   STEER_TIME_ALERT = STEER_TIME_MAX - 10   # If mitigation fails, time to soft disengage before EPS timer expires
+  STEER_LOW_TORQUE = STEER_MAX * 0.2       # Steer timer mitigation performed when torque output under 20%
+  STEER_TIME_LOW_TORQUE = 0.5              # Wait for this duration of STEER_LOW_TORQUE to begin mitigation
   STEER_TIME_STUCK_TORQUE = 1.9            # EPS limits same torque to 6 seconds, reset timer 3x within that period
+  STEER_TIME_RESET = 1.1                   # Duration of HCA disable needed for effective EPS timer reset
 
   DEFAULT_MIN_STEER_SPEED = 0.4            # m/s, newer EPS racks fault below this speed, don't show a low speed alert
 
@@ -265,7 +269,7 @@ class VWCarDocs(CarDocs):
 # FW_VERSIONS for that existing CAR.
 
 class CAR(Platforms):
-  config: VolkswagenMQBPlatformConfig | VolkswagenPQPlatformConfig
+  config: VolkswagenMQBPlatformConfig | VolkswagenPQPlatformConfig | VolkswagenMLBPlatformConfig
 
   VOLKSWAGEN_ARTEON_MK1 = VolkswagenMQBPlatformConfig(
     [
@@ -446,6 +450,12 @@ class CAR(Platforms):
     VolkswagenCarSpecs(mass=1895, wheelbase=2.81, steerRatio=16.2),
     chassis_codes={"95", "A5"},
     wmis={WMI.PORSCHE_SUV},
+  )
+  AUDI_Q5_MK1 = VolkswagenMLBPlatformConfig(
+    [VWCarDocs("Audi Q5 2014")],
+    VolkswagenCarSpecs(mass=1850, wheelbase=2.81, minEnableSpeed=15 * CV.KPH_TO_MS),
+    chassis_codes={"8R"},
+    wmis={WMI.AUDI_EUROPE_MPV},
   )
   SEAT_ATECA_MK1 = VolkswagenMQBPlatformConfig(
     [

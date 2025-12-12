@@ -1,4 +1,4 @@
-from opendbc.car.volkswagen.mqbcan import (volkswagen_mqb_meb_checksum, xor_checksum,
+from opendbc.car.volkswagen.mqbcan import (crc8h2f_checksum,xor_checksum,
                                            create_lka_hud_control as mqb_create_lka_hud_control)
 
 # TODO: Parameterize the hca control type (5 vs 7) and consolidate with MQB (and PQ?)
@@ -20,10 +20,10 @@ def create_lka_hud_control(packer, bus, ldw_stock_values, enabled, steering_pres
 
 def create_acc_buttons_control(packer, bus, gra_stock_values, cancel=False, resume=False):
   values = {s: gra_stock_values[s] for s in [
-    "LS_Hauptschalter",
-    "LS_Typ_Hauptschalter",
-    "LS_Codierung",
-    "LS_Tip_Stufe_2",
+    "LS_Hauptschalter",           # ACC button, on/off
+    "LS_Typ_Hauptschalter",       # ACC main button type
+    "LS_Codierung",               # ACC button configuration/coding
+    "LS_Tip_Stufe_2",             # unknown related to stalk type
   ]}
 
   values.update({
@@ -36,21 +36,82 @@ def create_acc_buttons_control(packer, bus, gra_stock_values, cancel=False, resu
 
 
 def acc_control_value(main_switch_on, acc_faulted, long_active):
-  return 0
+  if acc_faulted:
+    acc_control = 6
+  elif long_active:
+    acc_control = 3
+  elif main_switch_on:
+    acc_control = 2
+  else:
+    acc_control = 0
 
-
-def acc_hud_status_value(main_switch_on, acc_faulted, long_active):
-  return 0
+  return acc_control
 
 
 def create_acc_accel_control(packer, bus, acc_type, acc_enabled, accel, acc_control, stopping, starting, esp_hold):
-  values = {}
-  return packer.make_can_msg("ACC_05", bus, values)
+  commands = []
+
+  acc_05_values = {
+    "ACC_Freigabe_Momentenanf": 1 if accel > 0 else 0, # increased acceleration requested?
+    "ACC_Freigabe_Verzanf": 1 if accel < 0 else 0, # decreased acceleration requested?
+    "ACC_Getriebestellung_P": 0,
+    "ACC_limitierte_Anfahrdyn": 0,
+    "ACC_Momentenanforderung": int(accel*100) if accel > 0 else 0, # "torque requested",
+    "ACC_zul_Regelabw": 0,
+    "ACC_Verz_anf": accel if accel < 0 else 0, # brake accel requested
+    "ACC_Loeseanforderung": starting, # 1 when starting again from stop
+    "ACC_StartStopp_Info": starting, # 1 when moving, 0 when stopped
+    "ACC_Vorbefuellung_Bremsanlage": 1 if accel < 0 else 0,
+    "ACC_ax_Getriebe": accel, # positive or negative accel requested
+    "ACC_Status_ACC": acc_control,
+    "ACC_Betaetigung_EPB": 0,
+    "ACC_Beeinflussung_ESP": 0,
+    "ACC_Anhalten": stopping,
+    "ACC_KD_Fehler": 0,
+  }
+  commands.append(packer.make_can_msg("ACC_05", bus, acc_05_values))
+
+  acc_01_values = {
+    "ACC_Status_ACC": acc_control,
+    "ACC_Sollbeschleunigung": accel if acc_enabled else 0,
+    "ACC_zul_Regelabw_unten": 0.2,
+    "ACC_zul_Regelabw_oben": 0.2,
+    "ACC_neg_Sollbeschl_Grad": 4.0 if acc_enabled else 0,
+    "ACC_pos_Sollbeschl_Grad": 4.0 if acc_enabled else 0,
+    "ACC_Anfahren": starting,
+    "ACC_Anhalten": stopping,
+    "ACC_Dynamik": 2,
+    "ACC_Minimale_Bremsung": stopping,
+  }
+  commands.append(packer.make_can_msg("ACC_01", bus, acc_01_values))
+
+  return commands
 
 
-def create_acc_hud_control(packer, bus, acc_hud_status, set_speed, lead_distance, distance):
-  values = {}
+def acc_hud_status_value(main_switch_on, acc_faulted, long_active):
+  # TODO: happens to resemble the ACC control value for now, but extend this for init/gas override later
+  return acc_control_value(main_switch_on, acc_faulted, long_active)
+
+
+def create_acc_hud_control(packer, bus, acc_hud_status, set_speed, lead_distance, hud_control, mlb_hud_text):
+
+  acc_active = True if acc_hud_status in (3,4) else False
+  values = {
+    "ACC_Status_Anzeige": acc_hud_status,
+    "ACC_Wunschgeschw_02": set_speed if set_speed < 250 else 327.04,
+    "ACC_Display_Prio": 0,
+    "ACC_Anzeige_Zeitluecke": 1 if acc_active else 0,
+    "ACC_Gesetzte_Zeitluecke": hud_control.leadDistanceBars, # TODO: Update openpilot charisma using stock rocker switch
+    "ACC_Tachokranz": 1 if acc_active else 0,
+    "ACC_Relevantes_Objekt": 2 if hud_control.visualAlert > 0 else (1 if acc_active and hud_control.leadVisible else 0),
+    "ACC_Status_Prim_Anz": 2 if hud_control.visualAlert > 0 else (1 if acc_active else 0),
+    "ACC_Akustik": 1 if hud_control.audibleAlert == 5 else 0, # Audible alert on OP warningImmediate
+    "ACC_Abstandsindex": 1023 if acc_active else 1022,
+    "ACC_Texte_Primaeranz": mlb_hud_text,
+  }
+
   return packer.make_can_msg("ACC_02", bus, values)
+
 
 def volkswagen_mlb_checksum(address: int, sig, d: bytearray) -> int:
   xor_starting_value = {
@@ -58,14 +119,17 @@ def volkswagen_mlb_checksum(address: int, sig, d: bytearray) -> int:
     0x111: 0x10, # TSK_05
     0x30C: 0x0F, # ACC_02
     0x324: 0x27, # ACC_04
-    0x10B: 0xA,  # LS_01
+    0x10B: 0x0A, # LS_01
     0x10D: 0x0C, # ACC_05
     0x10F: 0x0E, # ACC_0x10F
     0x311: 0x12, # ACC_0x311
+    0x103: 0x02, # ESP_03
+    0x106: 0x07, # ESP_05
     0x397: 0x94, # LDW_02
+    0x105: 0x04, # Motor_03
     0x10C: 0x0D, # TSK_02
   }
   if address in xor_starting_value:
     return xor_checksum(address, sig, d, xor_starting_value[address])
   else:
-    return volkswagen_mqb_meb_checksum(address, sig, d)
+    return crc8h2f_checksum(address, sig, d)
