@@ -269,7 +269,7 @@ class VWCarDocs(CarDocs):
 # FW_VERSIONS for that existing CAR.
 
 class CAR(Platforms):
-  config: VolkswagenMQBPlatformConfig | VolkswagenPQPlatformConfig
+  config: VolkswagenMQBPlatformConfig | VolkswagenPQPlatformConfig | VolkswagenMLBPlatformConfig
 
   VOLKSWAGEN_ARTEON_MK1 = VolkswagenMQBPlatformConfig(
     [
@@ -456,6 +456,12 @@ class CAR(Platforms):
     VolkswagenCarSpecs(mass=1895, wheelbase=2.81, steerRatio=16.2),
     chassis_codes={"95", "A5"},
     wmis={WMI.PORSCHE_SUV},
+  )
+  AUDI_Q5_MK1 = VolkswagenMLBPlatformConfig(
+    [VWCarDocs("Audi Q5 2014")],
+    VolkswagenCarSpecs(mass=1850, wheelbase=2.81, minEnableSpeed=15 * CV.KPH_TO_MS),
+    chassis_codes={"8R"},
+    wmis={WMI.AUDI_EUROPE_MPV},
   )
   SEAT_ATECA_MK1 = VolkswagenMQBPlatformConfig(
     [
