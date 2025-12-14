@@ -19,27 +19,44 @@ static safety_config volkswagen_mlb_init(uint16_t param) {
     {MSG_ACC_05, 0, 8, .check_relay = true},
   };
 
-  static RxCheck volkswagen_mlb_rx_checks[] = {
-    // TODO: implement checksum validation
-    {.msg = {{MSG_ESP_03, 0, 8, 50U, .ignore_checksum = true, .max_counter = 15U, .ignore_quality_flag = true}, { 0 }, { 0 }}},
-    {.msg = {{MSG_LH_EPS_03, 0, 8, 100U, .ignore_checksum = true, .max_counter = 15U, .ignore_quality_flag = true}, { 0 }, { 0 }}},
-    {.msg = {{MSG_ESP_05, 0, 8, 50U, .ignore_checksum = true, .max_counter = 15U, .ignore_quality_flag = true}, { 0 }, { 0 }}},
-    {.msg = {{MSG_TSK_02, 0, 8, .ignore_checksum = true, .max_counter = 15U, .ignore_quality_flag = true}, { 0 }, { 0 }}},
-    {.msg = {{MSG_ACC_05, 2, 8, 50U, .ignore_checksum = true, .max_counter = 15U, .ignore_quality_flag = true}, { 0 }, { 0 }}},
-    {.msg = {{MSG_MOTOR_03, 0, 8, 100U, .ignore_checksum = true, .max_counter = 15U, .ignore_quality_flag = true}, { 0 }, { 0 }}},
-    {.msg = {{MSG_LS_01, 0, 4, 10U, .ignore_checksum = true, .max_counter = 15U, .ignore_quality_flag = true}, { 0 }, { 0 }}},
-    {.msg = {{MSG_ACC_02, 2, 8, .ignore_checksum = true, .max_counter = 15U, .ignore_quality_flag = true}, { 0 }, { 0 }}},
+  // Audi Q5/S4/S5 and similar vehicles (default MLB platform)
+  static RxCheck volkswagen_mlb_audi_rx_checks[] = {
+    {.msg = {{MSG_ESP_03, 0, 8, 50U, .max_counter = 15U, .ignore_quality_flag = true}, { 0 }, { 0 }}},
+    {.msg = {{MSG_LH_EPS_03, 0, 8, 100U, .max_counter = 15U, .ignore_quality_flag = true}, { 0 }, { 0 }}},
+    {.msg = {{MSG_ESP_05, 0, 8, 50U, .max_counter = 15U, .ignore_quality_flag = true}, { 0 }, { 0 }}},
+    {.msg = {{MSG_TSK_02, 0, 8, .max_counter = 15U, .ignore_quality_flag = true}, { 0 }, { 0 }}},
+    {.msg = {{MSG_MOTOR_03, 0, 8, 100U, .max_counter = 15U, .ignore_quality_flag = true}, { 0 }, { 0 }}},
+    {.msg = {{MSG_LS_01, 0, 4, 10U, .max_counter = 15U, .ignore_quality_flag = true}, { 0 }, { 0 }}},
+    {.msg = {{MSG_ACC_02, 2, 8, .max_counter = 15U, .ignore_quality_flag = true}, { 0 }, { 0 }}},
   };
 
-  SAFETY_UNUSED(param);
+  // Porsche Macan and similar vehicles with radar ACC
+  static RxCheck volkswagen_mlb_porsche_rx_checks[] = {
+    {.msg = {{MSG_ESP_03, 0, 8, 50U, .max_counter = 15U, .ignore_quality_flag = true}, { 0 }, { 0 }}},
+    {.msg = {{MSG_LH_EPS_03, 0, 8, 100U, .max_counter = 15U, .ignore_quality_flag = true}, { 0 }, { 0 }}},
+    {.msg = {{MSG_ESP_05, 0, 8, 50U, .max_counter = 15U, .ignore_quality_flag = true}, { 0 }, { 0 }}},
+    {.msg = {{MSG_TSK_02, 0, 8, .max_counter = 15U, .ignore_quality_flag = true}, { 0 }, { 0 }}},
+    {.msg = {{MSG_ACC_05, 2, 8, 50U, .ignore_checksum = true, .max_counter = 15U, .ignore_quality_flag = true}, { 0 }, { 0 }}},
+    {.msg = {{MSG_MOTOR_03, 0, 8, 100U, .max_counter = 15U, .ignore_quality_flag = true}, { 0 }, { 0 }}},
+    {.msg = {{MSG_LS_01, 0, 4, 10U, .max_counter = 15U, .ignore_quality_flag = true}, { 0 }, { 0 }}},
+    {.msg = {{MSG_ACC_02, 2, 8, .max_counter = 15U, .ignore_quality_flag = true}, { 0 }, { 0 }}},
+  };
+
   volkswagen_common_init();
 
 #ifdef ALLOW_DEBUG
   volkswagen_longitudinal = GET_FLAG(param, FLAG_VOLKSWAGEN_LONG_CONTROL);
 #endif
 
-  return volkswagen_longitudinal ? BUILD_SAFETY_CFG(volkswagen_mlb_rx_checks, VOLKSWAGEN_MLB_LONG_TX_MSGS) : \
-                                   BUILD_SAFETY_CFG(volkswagen_mlb_rx_checks, VOLKSWAGEN_MLB_STOCK_TX_MSGS);
+  bool is_porsche = GET_FLAG(param, FLAG_VOLKSWAGEN_MLB_PORSCHE);
+
+  if (is_porsche) {
+    return volkswagen_longitudinal ? BUILD_SAFETY_CFG(volkswagen_mlb_porsche_rx_checks, VOLKSWAGEN_MLB_LONG_TX_MSGS) : \
+                                     BUILD_SAFETY_CFG(volkswagen_mlb_porsche_rx_checks, VOLKSWAGEN_MLB_STOCK_TX_MSGS);
+  } else {
+    return volkswagen_longitudinal ? BUILD_SAFETY_CFG(volkswagen_mlb_audi_rx_checks, VOLKSWAGEN_MLB_LONG_TX_MSGS) : \
+                                     BUILD_SAFETY_CFG(volkswagen_mlb_audi_rx_checks, VOLKSWAGEN_MLB_STOCK_TX_MSGS);
+  }
 }
 
 static void volkswagen_mlb_rx_hook(const CANPacket_t *msg) {
@@ -100,10 +117,10 @@ static void volkswagen_mlb_rx_hook(const CANPacket_t *msg) {
     }
 
     // Signal: Motor_03.MO_Fahrpedalrohwert_01
-    // Signal: Motor_03.MO_Fahrer_bremst
+    // Signal: Motor_03.MO_BLS (bit 34)
     if (msg->addr == MSG_MOTOR_03) {
       gas_pressed = msg->data[6] != 0U;
-      volkswagen_brake_pedal_switch = GET_BIT(msg, 35U);
+      volkswagen_brake_pedal_switch = GET_BIT(msg, 34U);
     }
 
     if (msg->addr == MSG_ESP_05) {

@@ -3,6 +3,9 @@
 extern const uint16_t FLAG_VOLKSWAGEN_LONG_CONTROL;
 const uint16_t FLAG_VOLKSWAGEN_LONG_CONTROL = 1;
 
+extern const uint16_t FLAG_VOLKSWAGEN_MLB_PORSCHE;
+const uint16_t FLAG_VOLKSWAGEN_MLB_PORSCHE = 2;
+
 static uint8_t volkswagen_crc8_lut_8h2f[256]; // Static lookup table for CRC8 poly 0x2F, aka 8H2F/AUTOSAR
 
 extern bool volkswagen_longitudinal;
@@ -59,8 +62,35 @@ static uint8_t volkswagen_mqb_meb_mlb_get_counter(const CANPacket_t *msg) {
   return (uint8_t)msg->data[1] & 0xFU;
 }
 
+static uint32_t volkswagen_mqb_meb_mlb_compute_xor(const CANPacket_t *msg, uint8_t initial_value) {
+  int len = GET_LEN(msg);
+  uint8_t checksum = initial_value;
+
+  // XOR all bytes except the checksum byte (byte 0)
+  for (int i = 1; i < len; i++) {
+    checksum ^= (uint8_t)msg->data[i];
+  }
+
+  return checksum;
+}
+
 static uint32_t volkswagen_mqb_meb_mlb_compute_crc(const CANPacket_t *msg) {
   int len = GET_LEN(msg);
+
+  // Some MLB messages use XOR checksum instead of CRC-8H2F
+  if (msg->addr == MSG_MOTOR_03) {
+    return volkswagen_mqb_meb_mlb_compute_xor(msg, 0x04U);
+  } else if (msg->addr == MSG_ESP_03) {
+    return volkswagen_mqb_meb_mlb_compute_xor(msg, 0x02U);
+  } else if (msg->addr == MSG_ESP_05) {
+    return volkswagen_mqb_meb_mlb_compute_xor(msg, 0x07U);
+  } else if (msg->addr == MSG_TSK_02) {
+    return volkswagen_mqb_meb_mlb_compute_xor(msg, 0x0DU);
+  } else if (msg->addr == MSG_LS_01) {
+    return volkswagen_mqb_meb_mlb_compute_xor(msg, 0x0AU);
+  } else if (msg->addr == MSG_ACC_02) {
+    return volkswagen_mqb_meb_mlb_compute_xor(msg, 0x0FU);
+  }
 
   // This is CRC-8H2F/AUTOSAR with a twist. See the opendbc/car/volkswagen/ implementation
   // of this algorithm for a version with explanatory comments.
@@ -74,8 +104,6 @@ static uint32_t volkswagen_mqb_meb_mlb_compute_crc(const CANPacket_t *msg) {
   uint8_t counter = volkswagen_mqb_meb_mlb_get_counter(msg);
   if (msg->addr == MSG_LH_EPS_03) {
     crc ^= (uint8_t[]){0xF5, 0xF5, 0xF5, 0xF5, 0xF5, 0xF5, 0xF5, 0xF5, 0xF5, 0xF5, 0xF5, 0xF5, 0xF5, 0xF5, 0xF5, 0xF5}[counter];
-  } else if (msg->addr == MSG_ESP_05) {
-    crc ^= (uint8_t[]){0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07, 0x07}[counter];
   } else if (msg->addr == MSG_TSK_06) {
     crc ^= (uint8_t[]){0xC4, 0xE2, 0x4F, 0xE4, 0xF8, 0x2F, 0x56, 0x81, 0x9F, 0xE5, 0x83, 0x44, 0x05, 0x3F, 0x97, 0xDF}[counter];
   } else if (msg->addr == MSG_MOTOR_20) {
