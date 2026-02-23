@@ -43,7 +43,7 @@ class TestVolkswagenMlbSafetyBase(common.CarSafetyTest, common.DriverTorqueSteer
   # Brake pedal switch
   def _motor_03_msg(self, brake_signal=False, gas_signal=0):
     values = {
-      "MO_Fahrer_bremst": brake_signal,
+      "MO_BLS": brake_signal,
       "MO_Fahrpedalrohwert_01": gas_signal,
     }
     return self.packer.make_can_msg_safety("Motor_03", 0, values)

@@ -4,6 +4,25 @@
 #include "opendbc/safety/modes/volkswagen_common.h"
 
 
+static uint32_t volkswagen_mlb_compute_checksum(const CANPacket_t *msg) {
+  // MLB messages use XOR checksum instead of CRC-8H2F
+  if (msg->addr == MSG_MOTOR_03) {
+    return volkswagen_mqb_meb_mlb_compute_xor(msg, 0x04U);
+  } else if (msg->addr == MSG_ESP_03) {
+    return volkswagen_mqb_meb_mlb_compute_xor(msg, 0x02U);
+  } else if (msg->addr == MSG_ESP_05) {
+    return volkswagen_mqb_meb_mlb_compute_xor(msg, 0x07U);
+  } else if (msg->addr == MSG_TSK_02) {
+    return volkswagen_mqb_meb_mlb_compute_xor(msg, 0x0DU);
+  } else if (msg->addr == MSG_LS_01) {
+    return volkswagen_mqb_meb_mlb_compute_xor(msg, 0x0AU);
+  } else if (msg->addr == MSG_ACC_02) {
+    return volkswagen_mqb_meb_mlb_compute_xor(msg, 0x0FU);
+  }
+
+  return volkswagen_mqb_meb_compute_crc(msg);
+}
+
 static safety_config volkswagen_mlb_init(uint16_t param) {
   // Transmit of LS_01 is allowed on bus 0 and 2 to keep compatibility with gateway and camera integration
   static const CanMsg VOLKSWAGEN_MLB_STOCK_TX_MSGS[] = {{MSG_HCA_01, 0, 8, .check_relay = true}, {MSG_LDW_02, 0, 8, .check_relay = true},
@@ -19,24 +38,11 @@ static safety_config volkswagen_mlb_init(uint16_t param) {
     {MSG_ACC_05, 0, 8, .check_relay = true},
   };
 
-  // Audi Q5/S4/S5 and similar vehicles (default MLB platform)
-  static RxCheck volkswagen_mlb_audi_rx_checks[] = {
+  static RxCheck volkswagen_mlb_rx_checks[] = {
     {.msg = {{MSG_ESP_03, 0, 8, 50U, .max_counter = 15U, .ignore_quality_flag = true}, { 0 }, { 0 }}},
     {.msg = {{MSG_LH_EPS_03, 0, 8, 100U, .max_counter = 15U, .ignore_quality_flag = true}, { 0 }, { 0 }}},
     {.msg = {{MSG_ESP_05, 0, 8, 50U, .max_counter = 15U, .ignore_quality_flag = true}, { 0 }, { 0 }}},
-    {.msg = {{MSG_TSK_02, 0, 8, .max_counter = 15U, .ignore_quality_flag = true}, { 0 }, { 0 }}},
-    {.msg = {{MSG_MOTOR_03, 0, 8, 100U, .max_counter = 15U, .ignore_quality_flag = true}, { 0 }, { 0 }}},
-    {.msg = {{MSG_LS_01, 0, 4, 10U, .max_counter = 15U, .ignore_quality_flag = true}, { 0 }, { 0 }}},
-    {.msg = {{MSG_ACC_02, 2, 8, .max_counter = 15U, .ignore_quality_flag = true}, { 0 }, { 0 }}},
-  };
-
-  // Porsche Macan and similar vehicles with radar ACC
-  static RxCheck volkswagen_mlb_porsche_rx_checks[] = {
-    {.msg = {{MSG_ESP_03, 0, 8, 50U, .max_counter = 15U, .ignore_quality_flag = true}, { 0 }, { 0 }}},
-    {.msg = {{MSG_LH_EPS_03, 0, 8, 100U, .max_counter = 15U, .ignore_quality_flag = true}, { 0 }, { 0 }}},
-    {.msg = {{MSG_ESP_05, 0, 8, 50U, .max_counter = 15U, .ignore_quality_flag = true}, { 0 }, { 0 }}},
-    {.msg = {{MSG_TSK_02, 0, 8, .max_counter = 15U, .ignore_quality_flag = true}, { 0 }, { 0 }}},
-    {.msg = {{MSG_ACC_05, 2, 8, 50U, .ignore_checksum = true, .max_counter = 15U, .ignore_quality_flag = true}, { 0 }, { 0 }}},
+    {.msg = {{MSG_ACC_05, 2, 8, 50U, .ignore_checksum = true, .max_counter = 15U, .ignore_quality_flag = true}, {MSG_TSK_02, 0, 8, .max_counter = 15U, .ignore_quality_flag = true}, { 0 }}},
     {.msg = {{MSG_MOTOR_03, 0, 8, 100U, .max_counter = 15U, .ignore_quality_flag = true}, { 0 }, { 0 }}},
     {.msg = {{MSG_LS_01, 0, 4, 10U, .max_counter = 15U, .ignore_quality_flag = true}, { 0 }, { 0 }}},
     {.msg = {{MSG_ACC_02, 2, 8, .max_counter = 15U, .ignore_quality_flag = true}, { 0 }, { 0 }}},
@@ -48,15 +54,8 @@ static safety_config volkswagen_mlb_init(uint16_t param) {
   volkswagen_longitudinal = GET_FLAG(param, FLAG_VOLKSWAGEN_LONG_CONTROL);
 #endif
 
-  bool is_porsche = GET_FLAG(param, FLAG_VOLKSWAGEN_MLB_PORSCHE);
-
-  if (is_porsche) {
-    return volkswagen_longitudinal ? BUILD_SAFETY_CFG(volkswagen_mlb_porsche_rx_checks, VOLKSWAGEN_MLB_LONG_TX_MSGS) : \
-                                     BUILD_SAFETY_CFG(volkswagen_mlb_porsche_rx_checks, VOLKSWAGEN_MLB_STOCK_TX_MSGS);
-  } else {
-    return volkswagen_longitudinal ? BUILD_SAFETY_CFG(volkswagen_mlb_audi_rx_checks, VOLKSWAGEN_MLB_LONG_TX_MSGS) : \
-                                     BUILD_SAFETY_CFG(volkswagen_mlb_audi_rx_checks, VOLKSWAGEN_MLB_STOCK_TX_MSGS);
-  }
+  return volkswagen_longitudinal ? BUILD_SAFETY_CFG(volkswagen_mlb_rx_checks, VOLKSWAGEN_MLB_LONG_TX_MSGS) : \
+                                    BUILD_SAFETY_CFG(volkswagen_mlb_rx_checks, VOLKSWAGEN_MLB_STOCK_TX_MSGS);
 }
 
 static void volkswagen_mlb_rx_hook(const CANPacket_t *msg) {
@@ -220,5 +219,5 @@ const safety_hooks volkswagen_mlb_hooks = {
   .tx = volkswagen_mlb_tx_hook,
   .get_counter = volkswagen_mqb_meb_mlb_get_counter,
   .get_checksum = volkswagen_mqb_meb_mlb_get_checksum,
-  .compute_checksum = volkswagen_mqb_meb_mlb_compute_crc,
+  .compute_checksum = volkswagen_mlb_compute_checksum,
 };
