@@ -6,21 +6,25 @@
 
 static uint32_t volkswagen_mlb_compute_checksum(const CANPacket_t *msg) {
   // MLB messages use XOR checksum instead of CRC-8H2F
-  if (msg->addr == MSG_MOTOR_03) {
-    return volkswagen_mqb_meb_mlb_compute_xor(msg, 0x04U);
-  } else if (msg->addr == MSG_ESP_03) {
-    return volkswagen_mqb_meb_mlb_compute_xor(msg, 0x02U);
-  } else if (msg->addr == MSG_ESP_05) {
-    return volkswagen_mqb_meb_mlb_compute_xor(msg, 0x07U);
-  } else if (msg->addr == MSG_TSK_02) {
-    return volkswagen_mqb_meb_mlb_compute_xor(msg, 0x0DU);
-  } else if (msg->addr == MSG_LS_01) {
-    return volkswagen_mqb_meb_mlb_compute_xor(msg, 0x0AU);
-  } else if (msg->addr == MSG_ACC_02) {
-    return volkswagen_mqb_meb_mlb_compute_xor(msg, 0x0FU);
-  }
+  static const struct {
+    uint32_t addr;
+    uint8_t  xor_seed;
+  } xor_msgs[] = {
+    {MSG_MOTOR_03, 0x04U},
+    {MSG_ESP_03,   0x02U},
+    {MSG_ESP_05,   0x07U},
+    {MSG_TSK_02,   0x0DU},
+    {MSG_LS_01,    0x0AU},
+    {MSG_ACC_02,   0x0FU},
+  };
 
-  return volkswagen_mqb_meb_compute_crc(msg);
+  uint32_t result = volkswagen_mqb_meb_compute_crc(msg);
+  for (uint8_t i = 0U; i < (uint8_t)(sizeof(xor_msgs) / sizeof(xor_msgs[0])); i++) {
+    if (msg->addr == xor_msgs[i].addr) {
+      result = volkswagen_mqb_meb_mlb_compute_xor(msg, xor_msgs[i].xor_seed);
+    }
+  }
+  return result;
 }
 
 static safety_config volkswagen_mlb_init(uint16_t param) {
@@ -52,6 +56,8 @@ static safety_config volkswagen_mlb_init(uint16_t param) {
 
 #ifdef ALLOW_DEBUG
   volkswagen_longitudinal = GET_FLAG(param, FLAG_VOLKSWAGEN_LONG_CONTROL);
+#else
+  SAFETY_UNUSED(param);
 #endif
 
   return volkswagen_longitudinal ? BUILD_SAFETY_CFG(volkswagen_mlb_rx_checks, VOLKSWAGEN_MLB_LONG_TX_MSGS) : \
