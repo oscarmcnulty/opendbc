@@ -26,7 +26,7 @@ class TestCanChecksums(unittest.TestCase):
       parser.update([0, [modified_msg]])
       tested = parser.vl[msg_name]
       with self.subTest(counter=expected[counter_field]):
-        assert tested[checksum_field] == expected[checksum_field]
+        self.assertEqual(tested[checksum_field], expected[checksum_field], msg=f"Checksum mismatch on {msg_name} address:{msg_addr}")
 
   def verify_fca_giorgio_crc(self, msg_name: str, msg_addr: int, test_messages: list[bytes]):
     """Test modified SAE J1850 CRCs, with special final XOR cases for EPS messages"""
@@ -556,13 +556,13 @@ class TestCanChecksums(unittest.TestCase):
       b'\x72\x3f\x2b\x10\x00\x00\x22\x81',
     ])
 
-  def verify_volkswagen_mlb_crc(self, subtests, msg_name: str, msg_addr: int, test_messages: list[bytes], counter_field: str = 'COUNTER'):
+  def verify_volkswagen_mlb_crc(self, msg_name: str, msg_addr: int, test_messages: list[bytes], counter_field: str = 'COUNTER'):
     """Test AUTOSAR E2E Profile 2 CRCs / XOR"""
     assert len(test_messages) == 16  # All counter values must be tested
-    self.verify_checksum(subtests, "vw_mlb", msg_name, msg_addr, test_messages, counter_field=counter_field)
+    self.verify_checksum("vw_mlb", msg_name, msg_addr, test_messages, counter_field=counter_field)
 
-  def test_volkswagen_mlb_crc_acc_01(self, subtests):
-    self.verify_volkswagen_mlb_crc(subtests, "ACC_01", 0x109, [
+  def test_volkswagen_mlb_crc_acc_01(self):
+    self.verify_volkswagen_mlb_crc("ACC_01", 0x109, [
     b'\x84\x00\x00\xa4\x05\x00\x00\x2d',
     b'\x85\x01\x00\xa4\x05\x00\x00\x2d',
     b'\x86\x02\x00\xa4\x05\x00\x00\x2d',
@@ -581,8 +581,8 @@ class TestCanChecksums(unittest.TestCase):
     b'\x8b\x0f\x00\xa4\x05\x00\x00\x2d',
     ])
 
-  def test_volkswagen_mlb_crc_acc_02(self, subtests):
-    self.verify_volkswagen_mlb_crc(subtests, "ACC_02", 0x30C, [
+  def test_volkswagen_mlb_crc_acc_02(self):
+    self.verify_volkswagen_mlb_crc("ACC_02", 0x30C, [
     b'\x37\xe0\x3f\xfe\x63\x3a\x00\x40',
     b'\x36\xe1\x3f\xfe\x63\x3a\x00\x40',
     b'\x35\xe2\x3f\xfe\x63\x3a\x00\x40',
@@ -600,7 +600,7 @@ class TestCanChecksums(unittest.TestCase):
     b'\xa4\xee\xbf\x00\x60\xba\x00\x20',
     b'\xa5\xef\xbf\x00\x60\xba\x00\x20',
     ])
-    self.verify_volkswagen_mlb_crc(subtests, "ACC_02", 0x30C, [
+    self.verify_volkswagen_mlb_crc("ACC_02", 0x30C, [
     b'\x38\x80\x53\xff\x43\x38\x00\x60',
     b'\x39\x81\x53\xff\x43\x38\x00\x60',
     b'\x3a\x82\x53\xff\x43\x38\x00\x60',
@@ -619,8 +619,8 @@ class TestCanChecksums(unittest.TestCase):
     b'\x37\x8f\x53\xff\x43\x38\x00\x60',
     ])
 
-  def test_volkswagen_mlb_crc_acc_04(self, subtests):
-    self.verify_volkswagen_mlb_crc(subtests, "ACC_04", 0x324, [
+  def test_volkswagen_mlb_crc_acc_04(self):
+    self.verify_volkswagen_mlb_crc("ACC_04", 0x324, [
     b'\x15\x00\x07\x00\x00\x3f\x00\x0a',
     b'\x15\x01\x07\x00\x00\x3e\x00\x0a',
     b'\x15\x02\x07\x00\x00\x3d\x00\x0a',
@@ -639,8 +639,8 @@ class TestCanChecksums(unittest.TestCase):
     b'\x11\x0f\x07\x00\x00\x34\x00\x0a',
     ])
 
-  def test_volkswagen_mlb_crc_acc_05(self, subtests):
-    self.verify_volkswagen_mlb_crc(subtests, "ACC_05", 0x10D, [
+  def test_volkswagen_mlb_crc_acc_05(self):
+    self.verify_volkswagen_mlb_crc("ACC_05", 0x10D, [
     b'\x24\x10\x66\x00\xa4\x0d\x71\x86',
     b'\x2a\x11\x69\x00\xa4\x0d\x71\x86',
     b'\x2c\x12\x6c\x00\xa4\x0d\x71\x86',
@@ -659,8 +659,8 @@ class TestCanChecksums(unittest.TestCase):
     b'\x2e\x1f\x96\x00\xa4\x0d\x84\x86',
     ])
 
-  def test_volkswagen_mlb_crc_acc_10(self, subtests):
-    self.verify_volkswagen_mlb_crc(subtests, "ACC_10", 0x117, [
+  def test_volkswagen_mlb_crc_acc_10(self):
+    self.verify_volkswagen_mlb_crc("ACC_10", 0x117, [
         b'\x23\x00\x00\x40\x68\x00\x00\x00',
         b'\x47\x01\x00\x40\x68\x00\x00\x00',
         b'\xEB\x02\x00\x40\x68\x00\x00\x00',
@@ -679,8 +679,8 @@ class TestCanChecksums(unittest.TestCase):
         b'\x61\x0F\x00\x40\x68\x00\x00\x00',
     ])
 
-  def test_volkswagen_mlb_crc_ACC_0x10F(self, subtests):
-    self.verify_volkswagen_mlb_crc(subtests, "ACC_0x10F", 0x10F, [
+  def test_volkswagen_mlb_crc_ACC_0x10F(self):
+    self.verify_volkswagen_mlb_crc("ACC_0x10F", 0x10F, [
         b'\x0E\x00\x00\x00',
         b'\x0F\x01\x00\x00',
         b'\x0C\x02\x00\x00',
@@ -699,8 +699,8 @@ class TestCanChecksums(unittest.TestCase):
         b'\x01\x0F\x00\x00',
     ])
 
-  def test_volkswagen_mlb_crc_acc_0x311(self, subtests):
-    self.verify_volkswagen_mlb_crc(subtests, "ACC_0x311", 0x311, [
+  def test_volkswagen_mlb_crc_acc_0x311(self):
+    self.verify_volkswagen_mlb_crc("ACC_0x311", 0x311, [
         b'\x99\x10\x93\x08',
         b'\x98\x11\x93\x08',
         b'\x9B\x12\x93\x08',
@@ -719,8 +719,8 @@ class TestCanChecksums(unittest.TestCase):
         b'\x96\x1F\x93\x08',
     ])
 
-  def test_volkswagen_mlb_crc_esp_03(self, subtests):
-    self.verify_volkswagen_mlb_crc(subtests, "ESP_03", 0x103, [
+  def test_volkswagen_mlb_crc_esp_03(self):
+    self.verify_volkswagen_mlb_crc("ESP_03", 0x103, [
         b'\xe2\x00\x59\x92\x25\x59\x72\x25',
         b'\x03\x01\x59\x82\x25\x59\x82\x25',
         b'\xe0\x02\x59\x92\x25\x59\x72\x25',
@@ -739,8 +739,8 @@ class TestCanChecksums(unittest.TestCase):
         b'\x3d\x0f\x5b\xa2\x25\x5b\x92\x25',
     ])
 
-  def test_volkswagen_mlb_crc_esp_05(self, subtests):
-    self.verify_volkswagen_mlb_crc(subtests, "ESP_05", 0x106, [
+  def test_volkswagen_mlb_crc_esp_05(self):
+    self.verify_volkswagen_mlb_crc("ESP_05", 0x106, [
         b'\xa5\x00\x96\x04\x00\x00\x00\x30',
         b'\xa4\x01\x96\x04\x00\x00\x00\x30',
         b'\xa4\x02\x95\x04\x00\x00\x00\x30',
@@ -759,8 +759,8 @@ class TestCanChecksums(unittest.TestCase):
         b'\xa5\x0f\x99\x04\x00\x00\x00\x30',
     ])
 
-  def test_volkswagen_mlb_crc_ldw_02(self, subtests):
-    self.verify_volkswagen_mlb_crc(subtests, "LDW_02", 0x397, [
+  def test_volkswagen_mlb_crc_ldw_02(self):
+    self.verify_volkswagen_mlb_crc("LDW_02", 0x397, [
     b'\xaa\x80\x10\x00\x00\xb0\x1e\x00',
     b'\xb4\x81\x10\x00\x00\xaf\x1e\x00',
     b'\xb7\x82\x10\x00\x00\xaf\x1e\x00',
@@ -779,8 +779,8 @@ class TestCanChecksums(unittest.TestCase):
     b'\xbc\x8f\x10\x00\x00\xa9\x1e\x00',
     ])
 
-  def test_volkswagen_mlb_crc_LS_01(self, subtests):
-    self.verify_volkswagen_mlb_crc(subtests, "LS_01", 0x10B, [
+  def test_volkswagen_mlb_crc_LS_01(self):
+    self.verify_volkswagen_mlb_crc("LS_01", 0x10B, [
         b'\x0E\x10\x00\x14',
         b'\x0F\x11\x00\x14',
         b'\x0C\x12\x00\x14',
@@ -799,8 +799,8 @@ class TestCanChecksums(unittest.TestCase):
         b'\x01\x1F\x00\x14',
     ])
 
-  def test_volkswagen_mlb_crc_motor_03(self, subtests):
-    self.verify_volkswagen_mlb_crc(subtests, "Motor_03", 0x105, [
+  def test_volkswagen_mlb_crc_motor_03(self):
+    self.verify_volkswagen_mlb_crc("Motor_03", 0x105, [
         b'\x81\x00\xa8\x17\x80\x46\x00\xfc',
         b'\x8c\x01\xa4\x17\x80\x46\x00\xfc',
         b'\x8f\x02\xa4\x17\x80\x46\x00\xfc',
@@ -819,8 +819,8 @@ class TestCanChecksums(unittest.TestCase):
         b'\x8e\x0f\xa8\x17\x80\x46\x00\xfc',
     ])
 
-  def test_volkswagen_mlb_crc_tsk_04(self, subtests):
-    self.verify_volkswagen_mlb_crc(subtests, "TSK_04", 0x10E, [
+  def test_volkswagen_mlb_crc_tsk_04(self):
+    self.verify_volkswagen_mlb_crc("TSK_04", 0x10E, [
         b'\x72\x70\x44\x09\x00\x00\x00\x40',
         b'\x73\x71\x44\x09\x00\x00\x00\x40',
         b'\x70\x72\x44\x09\x00\x00\x00\x40',

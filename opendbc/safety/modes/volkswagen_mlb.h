@@ -13,7 +13,7 @@ static uint32_t volkswagen_mlb_compute_checksum(const CANPacket_t *msg) {
     {MSG_MOTOR_03, 0x04U},
     {MSG_ESP_03,   0x02U},
     {MSG_ESP_05,   0x07U},
-    {MSG_TSK_04,   0x0BU},
+    {MSG_TSK_04,   0x0FU},
     {MSG_LS_01,    0x0AU},
     {MSG_ACC_02,   0x0FU},
   };

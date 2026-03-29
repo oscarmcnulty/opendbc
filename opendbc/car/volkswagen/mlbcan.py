@@ -114,22 +114,19 @@ def create_acc_hud_control(packer, bus, acc_hud_status, set_speed, lead_distance
 
 
 def volkswagen_mlb_checksum(address: int, sig, d: bytearray) -> int:
-  xor_starting_value = {
-    0x109: 0x08, # ACC_01
-    0x111: 0x10, # TSK_05
-    0x30C: 0x0F, # ACC_02
-    0x324: 0x27, # ACC_04
-    0x10B: 0x0A, # LS_01
-    0x10D: 0x0C, # ACC_05
-    0x10F: 0x0E, # ACC_0x10F
-    0x311: 0x12, # ACC_0x311
-    0x103: 0x02, # ESP_03
-    0x106: 0x07, # ESP_05
-    0x397: 0x94, # LDW_02
-    0x105: 0x04, # Motor_03
-    0x10C: 0x0D, # TSK_02
-  }
-  if address in xor_starting_value:
-    return xor_checksum(address, sig, d, xor_starting_value[address])
-  else:
-    return crc8h2f_checksum(address, sig, d)
+  # CRC8 messages
+  if address in {0x9F, 0x117}: # LH_EPS_03, ACC_10
+      return crc8h2f_checksum(address, sig, d)
+
+  seed = (address & 0xFF) - 1
+
+  if address == 0x397: # LDW_02
+    seed = seed - 2
+      
+  elif address in {0x102, 0x106, 0x10E, 0x311}: #Getriebe_03, ESP_05, TSK_04, ACC_0x311
+    seed = seed + 2
+
+  elif address in {0x30C, 0x324}: # ACC_02, ACC_04
+    seed = seed + 4
+
+  return xor_checksum(address, sig, d, initial_value=(seed & 0xFF))

@@ -638,8 +638,8 @@ BO_ 131 Getriebe_02: 8 Getriebe_AL551_951_D4_C7
  SG_ GE_HYB_DZ_Eingriff : 61|2@1+ (1.0,0.0) [0.0|3] ""  Vector__XXX
 
 BO_ 258 Getriebe_03: 8 Getriebe_AL551_951_D4_C7
- SG_ Getriebe_03_CHK : 0|8@1+ (1,0) [0|255] ""  EPB_D4,Gateway_D4C7,Motor_EDC17_D4,Motor_ME17_BY,Motor_MED17_SIMOS8_D4
- SG_ Getriebe_03_BZ : 8|4@1+ (1,0) [0|15] ""  EPB_D4,Gateway_D4C7,Motor_EDC17_D4,Motor_ME17_BY,Motor_MED17_SIMOS8_D4
+ SG_ CHECKSUM : 0|8@1+ (1,0) [0|255] ""  EPB_D4,Gateway_D4C7,Motor_EDC17_D4,Motor_ME17_BY,Motor_MED17_SIMOS8_D4
+ SG_ COUNTER : 8|4@1+ (1,0) [0|15] ""  EPB_D4,Gateway_D4C7,Motor_EDC17_D4,Motor_ME17_BY,Motor_MED17_SIMOS8_D4
  SG_ GE_Freig_Langfr_Schutzmom : 12|1@1+ (1.0,0.0) [0.0|1] ""  Gateway_D4C7,Motor_EDC17_D4,Motor_ME17_BY,Motor_MED17_SIMOS8_D4
  SG_ GE_Uefkt : 14|10@1+ (0.1,0) [0.0|102.2] ""  EPB_D4,Gateway_D4C7,Motor_EDC17_D4,Motor_ME17_BY,Motor_MED17_SIMOS8_D4
  SG_ GE_Zielgang : 24|4@1+ (1.0,0.0) [0.0|15] ""  Gateway_D4C7,Motor_EDC17_D4,Motor_ME17_BY,Motor_MED17_SIMOS8_D4
