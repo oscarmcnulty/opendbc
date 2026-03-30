@@ -122,7 +122,9 @@ static void volkswagen_mlb_rx_hook(const CANPacket_t *msg) {
       int acc_status = (msg->data[7] & 0xC0U) >> 6;
       bool cruise_engaged = (acc_status == 1) || (acc_status == 2);
 
-      pcm_cruise_check(cruise_engaged);
+      if (!volkswagen_longitudinal) {
+        pcm_cruise_check(cruise_engaged);
+      }
     }
   }
 }
