@@ -97,6 +97,13 @@ class TestVolkswagenMlbSafetyBase(common.CarSafetyTest, common.DriverTorqueSteer
       self.assertEqual(brake_pressed, self.safety.get_brake_pressed_prev(),
                        f"expected {brake_pressed=} with {motor_03_signal=} and {esp_05_signal=}")
 
+  def test_rx_hook_xor_checksum(self):
+    # Non-LH_EPS_03 messages use XOR checksum; verify valid messages pass and corrupted ones fail
+    msg = self._speed_msg(0)
+    self.assertTrue(self._rx(msg))
+    msg[0].data[0] ^= 0xFF  # corrupt checksum byte
+    self.assertFalse(self._rx(msg))
+
   def test_torque_measurements(self):
     # TODO: make this test work with all cars
     self._rx(self._torque_driver_msg(50))
