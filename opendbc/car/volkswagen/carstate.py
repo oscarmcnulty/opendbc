@@ -1,4 +1,3 @@
-import math
 from opendbc.can import CANParser
 from opendbc.car import Bus, structs
 from opendbc.car.interfaces import CarStateBase
@@ -324,10 +323,6 @@ class CarState(CarStateBase):
     if not CP.flags & VolkswagenFlags.MLB:
       pt_messages += [
         ("Blinkmodi_02", 1)  # From J519 BCM (sent at 1Hz when no lights active, 50Hz when active)
-      ]
-    if CP.flags & VolkswagenFlags.MLB:
-      pt_messages += [
-        ("Blinkmodi_01", math.nan), # Blinkmodi_01 is sent at 20Hz when indicator is active and not sent otherwise
       ]
 
     if CP.flags & VolkswagenFlags.STOCK_HCA_PRESENT:

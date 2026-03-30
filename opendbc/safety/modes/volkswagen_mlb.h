@@ -5,24 +5,21 @@
 
 
 static uint32_t volkswagen_mlb_compute_checksum(const CANPacket_t *msg) {
-  // MLB messages use XOR checksum instead of CRC-8H2F
-  static const struct {
-    uint32_t addr;
-    uint8_t  xor_seed;
-  } xor_msgs[] = {
-    {MSG_MOTOR_03, 0x04U},
-    {MSG_ESP_03,   0x02U},
-    {MSG_ESP_05,   0x07U},
-    {MSG_TSK_04,   0x0FU},
-    {MSG_LS_01,    0x0AU},
-    {MSG_ACC_02,   0x0FU},
-  };
+  // for reference see python implementation in opendbc/car/volkswagen
+  uint32_t result;
 
-  uint32_t result = volkswagen_mqb_meb_compute_crc(msg);
-  for (uint8_t i = 0U; i < (uint8_t)(sizeof(xor_msgs) / sizeof(xor_msgs[0])); i++) {
-    if (msg->addr == xor_msgs[i].addr) {
-      result = volkswagen_mqb_meb_mlb_compute_xor(msg, xor_msgs[i].xor_seed);
+  if (msg->addr == MSG_LH_EPS_03) {
+    result = volkswagen_mqb_meb_compute_crc(msg);
+  } else {
+    uint8_t seed = (uint8_t)((msg->addr & 0xFFU) - 1U);
+    if ((msg->addr == MSG_ESP_05) || (msg->addr == MSG_TSK_04)) {
+      seed = (uint8_t)(seed + 2U);
+    } else if (msg->addr == MSG_ACC_02) {
+      seed = (uint8_t)(seed + 4U);
+    } else if (msg->addr == MSG_LDW_02) {
+      seed = (uint8_t)(seed - 2U);
     }
+    result = volkswagen_mqb_meb_mlb_compute_xor(msg, seed);
   }
   return result;
 }

@@ -123,20 +123,6 @@ BO_ 279 ACC_10: 8 XXX
  SG_ AWV_AWA_Anf_Lenkmomoffset : 47|9@1+ (0.01,0) [0.00|5.11] "Unit_NewtoMeter"  XXX
  SG_ PCF_Time_to_collision : 56|8@1+ (0.01,0) [0|2.5] "Unit_Secon"  XXX
 
-BO_ 271 ACC_0x10F: 4 Gateway_D4C7
- SG_ CHECKSUM : 0|8@1+ (1,0) [0|15] "" Vector_XXX
- SG_ COUNTER : 8|4@1+ (1,0) [0|15] "" Vector_XXX
- SG_ ACC_10F_Byte1_remaining : 12|4@1+ (1,0) [0|15] "" Vector_XXX
- SG_ ACC_10F_Byte2 : 16|8@1+ (1,0) [0|15] "" XXX
- SG_ ACC_10F_Byte3 : 24|8@1+ (1,0) [0|15] "" XXX
-
-BO_ 785 ACC_0x311: 4 Gateway_D4C7
- SG_ CHECKSUM : 0|8@1+ (1,0) [0|15] "" Vector_XXX
- SG_ COUNTER : 8|4@1+ (1,0) [0|15] "" Vector_XXX
- SG_ ACC_311_Byte1_remaining : 12|4@1+ (1,0) [0|15] "" Vector_XXX
- SG_ ACC_311_Byte2 : 16|8@1+ (1,0) [0|15] "" XXX
- SG_ ACC_311_Byte3 : 24|8@1+ (1,0) [0|15] "" XXX
-
 BO_ 64 Airbag_01: 8 Airbag_D4
  SG_ Airbag_01_CHK : 0|8@1+ (1,0) [0|255] ""  Gateway_D4C7,Motor_EDC17_D4,Motor_ME17_BY,Motor_MED17_SIMOS8_D4
  SG_ Airbag_01_BZ : 8|4@1+ (1,0) [0|15] ""  Gateway_D4C7,Motor_EDC17_D4,Motor_ME17_BY,Motor_MED17_SIMOS8_D4
@@ -1272,30 +1258,6 @@ BO_ 1601 Motor_Code_01: 8 Motor_EDC17_D4
 BO_ 969 MotorSlave_01: 1 Motor_Slave_D4
  SG_ MOS_KD_Fehler : 0|1@1+ (1.0,0.0) [0.0|1] ""  Gateway_D4C7
 
-BO_ 1594 MSG_63A: 8 Gateway_D4C7
- SG_ MSG_63A_Byte_0 : 0|8@1+ (1,0) [0|255] ""  Vector__XXX
- SG_ MSG_63A_Byte_1 : 8|8@1+ (1,0) [0|255] ""  Vector__XXX
- SG_ MSG_63A_Byte_2 : 16|8@1+ (1,0) [0|255] ""  Vector__XXX
- SG_ MSG_63A_Byte_3 : 24|8@1+ (1,0) [0|255] ""  Vector__XXX
-
-BO_ 1595 MSG_63B: 8 Gateway_D4C7
- SG_ MSG_63B_Byte_0 : 0|8@1+ (1,0) [0|255] ""  Vector__XXX
- SG_ MSG_63B_Byte_1 : 8|8@1+ (1,0) [0|255] ""  Vector__XXX
- SG_ MSG_63B_Byte_2 : 16|8@1+ (1,0) [0|255] ""  Vector__XXX
- SG_ MSG_63B_Byte_3 : 24|8@1+ (1,0) [0|255] ""  Vector__XXX
-
-BO_ 1596 MSG_63C: 8 Gateway_D4C7
- SG_ MSG_63C_Byte_0 : 0|8@1+ (1,0) [0|255] ""  Vector__XXX
- SG_ MSG_63C_Byte_1 : 8|8@1+ (1,0) [0|255] ""  Vector__XXX
- SG_ MSG_63C_Byte_2 : 16|8@1+ (1,0) [0|255] ""  Vector__XXX
- SG_ MSG_63C_Byte_3 : 24|8@1+ (1,0) [0|255] ""  Vector__XXX
-
-BO_ 1597 MSG_63D: 8 Gateway_D4C7
- SG_ MSG_63D_Byte_0 : 0|8@1+ (1,0) [0|255] ""  Vector__XXX
- SG_ MSG_63D_Byte_1 : 8|8@1+ (1,0) [0|255] ""  Vector__XXX
- SG_ MSG_63D_Byte_2 : 16|8@1+ (1,0) [0|255] ""  Vector__XXX
- SG_ MSG_63D_Byte_3 : 24|8@1+ (1,0) [0|255] ""  Vector__XXX
-
 BO_ 1696 NightVision_01: 8 Gateway_D4C7
  SG_ NV_aktiv : 12|1@1+ (1.0,0.0) [0.0|1] ""  Airbag_D4
  SG_ NV_Texte : 13|3@1+ (1.0,0.0) [0.0|7] ""  Vector__XXX
@@ -1844,8 +1806,8 @@ BO_ 270 TSK_04: 8 Motor_EDC17_D4
  SG_ TSK_Status_GRA_ACC_02 : 62|2@1+ (1.0,0.0) [0.0|3] ""  Getriebe_AL551_951_D4_C7,Getriebe_DL501_C7,Getriebe_VL381_C7
 
 BO_ 273 TSK_05: 8 Motor_EDC17_D4
- SG_ TSK_05_CHK : 0|8@1+ (1,0) [0|255] ""  EPB_D4,Gateway_D4C7,Getriebe_AL551_951_D4_C7,Getriebe_DL501_C7,Getriebe_VL381_C7
- SG_ TSK_05_BZ : 8|4@1+ (1,0) [0|15] ""  EPB_D4,Gateway_D4C7,Getriebe_AL551_951_D4_C7,Getriebe_DL501_C7,Getriebe_VL381_C7
+ SG_ CHECKSUM : 0|8@1+ (1,0) [0|255] ""  EPB_D4,Gateway_D4C7,Getriebe_AL551_951_D4_C7,Getriebe_DL501_C7,Getriebe_VL381_C7
+ SG_ COUNTER : 8|4@1+ (1,0) [0|15] ""  EPB_D4,Gateway_D4C7,Getriebe_AL551_951_D4_C7,Getriebe_DL501_C7,Getriebe_VL381_C7
  SG_ TSK_QBit_Steigung : 12|1@1+ (1.0,0.0) [0.0|1] ""  Gateway_D4C7,Getriebe_AL551_951_D4_C7,Getriebe_DL501_C7,Getriebe_VL381_C7
  SG_ TSK_Status_GRA_ACC_01 : 16|2@1+ (1.0,0.0) [0.0|3] ""  Gateway_D4C7
  SG_ TSK_Fahrzeugmasse : 18|5@1+ (200,500) [500|6500] "Unit_KiloGram"  Gateway_D4C7
