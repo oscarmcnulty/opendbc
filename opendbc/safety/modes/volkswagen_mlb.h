@@ -16,6 +16,8 @@ static uint32_t volkswagen_mlb_compute_checksum(const CANPacket_t *msg) {
       seed = (uint8_t)(seed + 2U);
     } else if (msg->addr == MSG_ACC_02) {
       seed = (uint8_t)(seed + 4U);
+    } else {
+      // seed unchanged for all other MLB XOR messages
     }
     result = volkswagen_mqb_meb_mlb_compute_xor(msg, seed);
   }
