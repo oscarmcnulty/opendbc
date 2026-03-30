@@ -114,9 +114,9 @@ def create_acc_hud_control(packer, bus, acc_hud_status, set_speed, lead_distance
 
 
 def volkswagen_mlb_checksum(address: int, sig, d: bytearray) -> int:
-  # CRC8 messages
-  if address in {0x9F, 0x117}: # LH_EPS_03, ACC_10
-      return crc8h2f_checksum(address, sig, d)
+
+  if address in {0x9F, 0x117, 0x126}: # LH_EPS_03, ACC_10, HCA_01
+    return crc8h2f_checksum(address, sig, d)
 
   seed = (address & 0xFF) - 1
 
