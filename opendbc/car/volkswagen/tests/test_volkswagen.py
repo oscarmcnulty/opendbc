@@ -23,11 +23,12 @@ class TestVolkswagenHCAMitigation(unittest.TestCase):
     hca_mitigation = HCAMitigation(CCP)
 
     for actuator_value in (-CCP.STEER_MAX, -1, 0, 1, CCP.STEER_MAX):
-      hca_mitigation.update(0, 0)  # Reset mitigation state
+      hca_mitigation.update(0, 0, False)  # Reset mitigation state
       for frame in range(self.STUCK_TORQUE_FRAMES + 2):
         should_nudge = actuator_value != 0 and frame == self.STUCK_TORQUE_FRAMES
         expected_torque = actuator_value - (1, -1)[actuator_value < 0] if should_nudge else actuator_value
-        assert hca_mitigation.update(actuator_value, actuator_value) == expected_torque, f"{frame=}"
+        result_torque, _ = hca_mitigation.update(actuator_value, actuator_value, actuator_value != 0)
+        assert result_torque == expected_torque, f"{frame=}"
 
 class TestVolkswagenPlatformConfigs(unittest.TestCase):
   def test_spare_part_fw_pattern(self):
