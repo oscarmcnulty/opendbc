@@ -15,13 +15,34 @@ class HCAMitigation:
   """
   Manages HCA fault mitigations for VW/Audi EPS racks:
     * Reduces torque by 1 for a single frame after commanding the same torque value for too long
+    * For MLB racks: proactively disables HCA during low-torque phases before the 6-minute EPS
+      timer expires, resetting the timer without a jarring forced cutout
   """
 
-  def __init__(self, CCP):
+  def __init__(self, CCP, eps_timer_workaround=False):
     self._max_same_torque_frames = CCP.STEER_TIME_STUCK_TORQUE / (DT_CTRL * CCP.STEER_STEP)
     self._same_torque_frames = 0
 
-  def update(self, apply_torque, apply_torque_last):
+    self._eps_timer_workaround = eps_timer_workaround
+    if eps_timer_workaround:
+      self._steer_step = CCP.STEER_STEP
+      self._timer_running_frames = 0
+      self._timer_resetting_frames = 0
+      self._low_torque_frames = 0
+      self._frames_for_bm = CCP.STEER_TIME_BM / DT_CTRL
+      self._frames_for_low_torque = CCP.STEER_TIME_LOW_TORQUE / DT_CTRL
+      self._frames_for_reset = CCP.STEER_TIME_RESET / DT_CTRL
+      self._frames_for_alert = CCP.STEER_TIME_ALERT / DT_CTRL
+      self._low_torque_threshold = CCP.STEER_LOW_TORQUE
+
+  @property
+  def eps_timer_soft_disable_alert(self):
+    if not self._eps_timer_workaround:
+      return False
+    return self._timer_running_frames > self._frames_for_alert
+
+  def update(self, apply_torque, apply_torque_last, hca_enabled):
+    # Stuck-torque mitigation: nudge torque by 1 after commanding same value too long
     if apply_torque != 0 and apply_torque_last == apply_torque:
       self._same_torque_frames += 1
       if self._same_torque_frames > self._max_same_torque_frames:
@@ -30,7 +51,34 @@ class HCAMitigation:
     else:
       self._same_torque_frames = 0
 
-    return apply_torque
+    # MLB 6-minute timer mitigation: proactively disable HCA during low-torque phases
+    # once we're past STEER_TIME_BM (~4 min), so the EPS timer resets without a forced cutout
+    if self._eps_timer_workaround:
+      if hca_enabled:
+        self._timer_running_frames += self._steer_step
+        if self._timer_running_frames >= self._frames_for_bm:
+          if abs(apply_torque) <= self._low_torque_threshold:
+            self._low_torque_frames += self._steer_step
+            if self._low_torque_frames >= self._frames_for_low_torque:
+              hca_enabled = False
+              apply_torque = 0
+          else:
+            self._low_torque_frames = 0
+            if self._timer_resetting_frames > 0:
+              # Still within a reset window that didn't fully complete; keep torque zero
+              apply_torque = 0
+      else:
+        self._low_torque_frames = 0
+
+      if not hca_enabled:
+        self._timer_resetting_frames += self._steer_step
+        if self._timer_resetting_frames >= self._frames_for_reset:
+          self._timer_running_frames = 0
+          self._timer_resetting_frames = 0
+      else:
+        self._timer_resetting_frames = 0
+
+    return apply_torque, hca_enabled
 
 
 class CarController(CarControllerBase):
@@ -49,13 +97,16 @@ class CarController(CarControllerBase):
       self.CCS = mqbcan
 
     self.apply_torque_last = 0
+    self.torque_output_can_last = 0
     self.gra_acc_counter_last = None
-    self.hca_mitigation = HCAMitigation(self.CCP)
+    self.eps_timer_soft_disable_alert = False
+    self.hca_mitigation = HCAMitigation(self.CCP, eps_timer_workaround=bool(CP.flags & VolkswagenFlags.MLB))
 
     self.last_set_speed = 0
     self.last_lead_distance_bars = 0
     self.mlb_hud_text = 0
     self.texte_timer = 0
+    self.accel_last = 0.0
 
   def update(self, CC, CS, now_nanos):
     actuators = CC.actuators
@@ -70,10 +121,14 @@ class CarController(CarControllerBase):
         new_torque = int(round(actuators.torque * self.CCP.STEER_MAX))
         apply_torque = apply_driver_steer_torque_limits(new_torque, self.apply_torque_last, CS.out.steeringTorque, self.CCP)
 
-      apply_torque = self.hca_mitigation.update(apply_torque, self.apply_torque_last)
       hca_enabled = apply_torque != 0
+      apply_torque, hca_enabled = self.hca_mitigation.update(apply_torque, self.apply_torque_last, hca_enabled)
+      self.eps_timer_soft_disable_alert = self.hca_mitigation.eps_timer_soft_disable_alert
+
+      torque_output_can = apply_torque if hca_enabled else 0
       self.apply_torque_last = apply_torque
-      can_sends.append(self.CCS.create_steering_control(self.packer_pt, self.CAN.pt, apply_torque, hca_enabled))
+      self.torque_output_can_last = torque_output_can
+      can_sends.append(self.CCS.create_steering_control(self.packer_pt, self.CAN.pt, torque_output_can, hca_enabled))
 
       if self.CP.flags & VolkswagenFlags.STOCK_HCA_PRESENT:
         # Pacify VW Emergency Assist driver inactivity detection by changing its view of driver steering input torque
@@ -90,6 +145,12 @@ class CarController(CarControllerBase):
       if self.frame % self.CCP.ACC_CONTROL_STEP == 0:
         acc_control = self.CCS.acc_control_value(CS.out.cruiseState.available, CS.out.accFaulted, CC.longActive)
         accel = float(np.clip(actuators.accel, self.CCP.ACCEL_MIN, self.CCP.ACCEL_MAX) if CC.longActive else 0)
+        if self.CP.flags & VolkswagenFlags.MLB:
+          # Jerk-limit the accel setpoint to match ACC_neg/pos_Sollbeschl_Grad (4.0 m/s³) declared in ACC_01.
+          # It may be possible to increase ACC_neg/pos_Sollbeschl_Grad instead of doing this. Either was the ECU is faulting during high jerk.
+          dt = DT_CTRL * self.CCP.ACC_CONTROL_STEP
+          accel = float(np.clip(accel, self.accel_last - 4.0 * dt, self.accel_last + 4.0 * dt))
+        self.accel_last = accel
         stopping = actuators.longControlState == LongCtrlState.stopping
         starting = actuators.longControlState == LongCtrlState.pid and (CS.esp_hold_confirmation or CS.out.vEgo < self.CP.vEgoStopping)
         can_sends.extend(self.CCS.create_acc_accel_control(self.packer_pt, self.CAN.pt, CS.acc_type, CC.longActive, accel,
@@ -144,7 +205,7 @@ class CarController(CarControllerBase):
 
     new_actuators = actuators.as_builder()
     new_actuators.torque = self.apply_torque_last / self.CCP.STEER_MAX
-    new_actuators.torqueOutputCan = self.apply_torque_last
+    new_actuators.torqueOutputCan = self.torque_output_can_last
 
     self.gra_acc_counter_last = CS.gra_stock_values["COUNTER"]
     self.frame += 1
