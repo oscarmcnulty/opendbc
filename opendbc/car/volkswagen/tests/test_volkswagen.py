@@ -23,11 +23,44 @@ class TestVolkswagenHCAMitigation(unittest.TestCase):
     hca_mitigation = HCAMitigation(CCP)
 
     for actuator_value in (-CCP.STEER_MAX, -1, 0, 1, CCP.STEER_MAX):
-      hca_mitigation.update(0, 0)  # Reset mitigation state
+      hca_mitigation.update(0, 0, False, 0)  # Reset mitigation state
       for frame in range(self.STUCK_TORQUE_FRAMES + 2):
         should_nudge = actuator_value != 0 and frame == self.STUCK_TORQUE_FRAMES
         expected_torque = actuator_value - (1, -1)[actuator_value < 0] if should_nudge else actuator_value
-        assert hca_mitigation.update(actuator_value, actuator_value) == expected_torque, f"{frame=}"
+        result_torque, _ = hca_mitigation.update(actuator_value, actuator_value, actuator_value != 0, actuator_value)
+        assert result_torque == expected_torque, f"{frame=}"
+
+  def test_eps_timer_reset_aborts_on_steering_request(self):
+    """An in-progress MLB EPS-timer reset must hand control back when the model commands real torque.
+
+    During the reset the output is force-zeroed, which anchors the rate limiter near zero, so the
+    actual output stays well below STEER_LOW_TORQUE even when the model wants full torque. The reset
+    must be gated on the model's desired torque so a real steering request aborts it immediately.
+    """
+    hca_mitigation = HCAMitigation(CCP, eps_timer_workaround=True)
+    bm_calls = round(CCP.STEER_TIME_BM / DT_CTRL / CCP.STEER_STEP) + 1
+    low_torque_calls = round(CCP.STEER_TIME_LOW_TORQUE / DT_CTRL / CCP.STEER_STEP) + 1
+    # Output that the rate limiter is pinned to while the reset force-zeroes the command: nonzero
+    # (so HCA reads as enabled) but below STEER_LOW_TORQUE.
+    pinned_output = 1
+    assert pinned_output <= CCP.STEER_LOW_TORQUE
+
+    # Arm the timer past STEER_TIME_BM with high torque; no reset should start while torque is high.
+    for _ in range(bm_calls):
+      _, hca_enabled = hca_mitigation.update(CCP.STEER_MAX, CCP.STEER_MAX, True, CCP.STEER_MAX)
+      assert hca_enabled, "reset must not trigger while the model is requesting high torque"
+
+    # Sustained low desired torque begins the silent reset (HCA disabled, output forced to zero).
+    for _ in range(low_torque_calls):
+      apply_torque, hca_enabled = hca_mitigation.update(pinned_output, pinned_output, True, 0)
+    assert not hca_enabled, "sustained low torque should disable HCA to reset the EPS timer"
+    assert apply_torque == 0
+
+    # Mid-reset, the model now commands full torque. The reset must abort and HCA re-enable, instead
+    # of staying pinned at zero for the rest of the reset window.
+    apply_torque, hca_enabled = hca_mitigation.update(pinned_output, 0, True, CCP.STEER_MAX)
+    assert hca_enabled, "reset must abort when the model commands real torque"
+    assert apply_torque == pinned_output
 
 class TestVolkswagenPlatformConfigs(unittest.TestCase):
   def test_spare_part_fw_pattern(self):
