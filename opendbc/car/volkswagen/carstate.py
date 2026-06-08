@@ -335,13 +335,12 @@ class CarState(CarStateBase):
     # TODO: We don't have a true mainswitch state yet, might need stateful tracking on LS_01 if momentary-press is a thing
     # TSK_04.TSK_Status_GRA_ACC_02 0 = not engaged, 1 = engaged, 2 = engaged with driver accel override, 3 = fault
     ret.cruiseState.available = alt_cp.vl["TSK_04"]["TSK_Status_GRA_ACC_02"] in (0, 1, 2)
-    ret.cruiseState.available = alt_cp.vl["TSK_04"]["TSK_Status_GRA_ACC_02"] in (1, 2)
     ret.accFaulted = alt_cp.vl["TSK_04"]["TSK_Status_GRA_ACC_02"] == 3
     ret.cruiseState.speed = ext_cp.vl["ACC_02"]["ACC_Wunschgeschw_02"] * CV.KPH_TO_MS
 
     self.parse_mlb_mqb_steering_state(ret, pt_cp)
 
-    brake_pedal_pressed = bool(pt_cp.vl["Motor_03"]["MO_Fahrer_bremst"])
+    brake_pedal_pressed = bool(pt_cp.vl["Motor_03"]["MO_BLS"])
     brake_pressure_detected = bool(pt_cp.vl["ESP_05"]["ESP_Fahrer_bremst"])
     ret.brakePressed = brake_pedal_pressed or brake_pressure_detected
     ret.parkingBrake = bool(pt_cp.vl["Kombi_01"]["KBI_Handbremse"])
