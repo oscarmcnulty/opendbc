@@ -192,6 +192,12 @@ static bool volkswagen_mlb_tx_hook(const CANPacket_t *msg) {
 
     violation |= longitudinal_accel_checks(desired_accel, VOLKSWAGEN_MLB_LONG_LIMITS);
 
+    // Signal: ACC_10.AWV_Halten (standstill hold request, start bit 41). Actuates the brakes, so only
+    // allow it while engaged.
+    if (!controls_allowed && GET_BIT(msg, 41U)) {
+      violation = true;
+    }
+
     if (violation) {
       tx = false;
     }

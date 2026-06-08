@@ -172,9 +172,9 @@ class TestVolkswagenMlbLongSafety(TestVolkswagenMlbSafetyBase):
     values = {"ACC_Sollbeschleunigung": accel}
     return self.packer.make_can_msg_safety("ACC_01", 0, values)
 
-  # ANB low-speed deceleration request to the ESP
-  def _acc_10_msg(self, accel):
-    values = {"ANB_Zielbrems_Teilbrems_Verz_Anf": accel}
+  # ANB low-speed deceleration request and AWV standstill hold request to the ESP
+  def _acc_10_msg(self, accel, awv_halten=0):
+    values = {"ANB_Zielbrems_Teilbrems_Verz_Anf": accel, "AWV_Halten": awv_halten}
     return self.packer.make_can_msg_safety("ACC_10", 0, values)
 
   # stock cruise controls are entirely bypassed under openpilot longitudinal control
@@ -227,6 +227,13 @@ class TestVolkswagenMlbLongSafety(TestVolkswagenMlbSafetyBase):
         is_inactive_accel = decoded == 0
         send = (controls_allowed and MIN_ACCEL <= decoded <= MAX_ACCEL) or is_inactive_accel
         self.assertEqual(send, self._tx(self._acc_10_msg(accel)), (controls_allowed, accel, decoded))
+
+  def test_acc_10_standstill_hold_safety_check(self):
+    # AWV_Halten actuates the brakes to hold at standstill, so it may only be sent while engaged
+    for controls_allowed in [True, False]:
+      self.safety.set_controls_allowed(controls_allowed)
+      self.assertEqual(controls_allowed, self._tx(self._acc_10_msg(0, awv_halten=1)), controls_allowed)
+      self.assertTrue(self._tx(self._acc_10_msg(0, awv_halten=0)), controls_allowed)
 
 
 if __name__ == "__main__":

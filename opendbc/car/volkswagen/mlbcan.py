@@ -7,6 +7,7 @@ from opendbc.car.volkswagen.mqbcan import (crc8h2f_checksum,xor_checksum,
 # stop. Gate exactly at the ACC_01 floor so the two never request braking at the same time (below the
 # floor the ECU ignores ACC_01, above it ACC_10 stays inactive). Tune against vehicle data.
 ACC_10_MAX_SPEED = 15 * CV.KPH_TO_MS
+ACC_10_STANDSTILL_SPEED = 0.5  # m/s, request the AWV standstill hold once essentially stopped
 
 # TODO: Parameterize the hca control type (5 vs 7) and consolidate with MQB (and PQ?)
 def create_steering_control(packer, bus, apply_steer, lkas_enabled):
@@ -97,12 +98,18 @@ def create_acc_accel_control(packer, bus, acc_type, acc_enabled, accel, acc_cont
   commands.append(packer.make_can_msg("ACC_01", bus, acc_01_values))
 
   # ACC_10 (ANB): low-speed deceleration request straight to the ESP, used below the ACC_01 floor so
-  # openpilot can continue braking to a full stop. Sent as a quiescent heartbeat otherwise.
-  low_speed_braking = acc_enabled and accel < 0 and v_ego < ACC_10_MAX_SPEED
+  # openpilot can continue braking to a full stop. Once stopped, AWV_Halten asks the ESP to clamp and
+  # hold the car at standstill (a timed pre sense-style hold); we keep ANB braking until the ESP
+  # confirms the hold, then release it and rely on AWV_Halten. Quiescent heartbeat otherwise.
+  holding = acc_enabled and esp_hold
+  request_hold = acc_enabled and (esp_hold or (stopping and v_ego < ACC_10_STANDSTILL_SPEED))
+  low_speed_braking = acc_enabled and accel < 0 and v_ego < ACC_10_MAX_SPEED and not holding
   acc_10_values = {
     "ANB_Zielbrems_Teilbrems_Verz_Anf": accel if low_speed_braking else 0,
     "ANB_Zielbremsung_Freigabe": 1 if low_speed_braking else 0,  # target braking (controlled stop)
     "ANB_Teilbremsung_Freigabe": 0,                              # partial braking, unused
+    "AWV_Halten": 1 if request_hold else 0,                      # request ESP hold at standstill
+    "AWV1_ECD_Anlauf": 1 if request_hold else 0,                 # spin up ESC pump to maintain clamp
   }
   commands.append(packer.make_can_msg("ACC_10", bus, acc_10_values))
 
