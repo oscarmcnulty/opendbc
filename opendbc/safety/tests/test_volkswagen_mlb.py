@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import math
 import unittest
 import numpy as np
 from opendbc.car.structs import CarParams
@@ -13,6 +14,7 @@ MIN_ACCEL = -2.95
 MSG_ACC_01 = 0x109      # TX by OP, longitudinal drivetrain control
 MSG_ACC_02 = 0x30C      # TX by OP, ACC HUD data to the instrument cluster
 MSG_ACC_05 = 0x10D      # TX by OP (long), ACC control instructions to the drivetrain coordinator
+MSG_ACC_10 = 0x117      # TX by OP (long), ANB low-speed deceleration request to the ESP
 MSG_LH_EPS_03 = 0x9F    # RX from EPS, for driver steering torque
 MSG_ESP_03 = 0x103      # RX from ABS, for wheel speeds
 MSG_MOTOR_03 = 0x105    # RX from ECU, for driver throttle input and driver brake input
@@ -155,9 +157,9 @@ class TestVolkswagenMlbStockSafety(TestVolkswagenMlbSafetyBase):
 
 class TestVolkswagenMlbLongSafety(TestVolkswagenMlbSafetyBase):
   TX_MSGS = [[MSG_HCA_01, 0], [MSG_LS_01, 0], [MSG_LS_01, 2], [MSG_LDW_02, 0],
-             [MSG_ACC_02, 0], [MSG_ACC_01, 0], [MSG_ACC_05, 0]]
-  FWD_BLACKLISTED_ADDRS = {2: [MSG_HCA_01, MSG_LDW_02, MSG_ACC_02, MSG_ACC_01, MSG_ACC_05]}
-  RELAY_MALFUNCTION_ADDRS = {0: (MSG_HCA_01, MSG_LDW_02, MSG_ACC_02, MSG_ACC_01, MSG_ACC_05)}
+             [MSG_ACC_02, 0], [MSG_ACC_01, 0], [MSG_ACC_05, 0], [MSG_ACC_10, 0]]
+  FWD_BLACKLISTED_ADDRS = {2: [MSG_HCA_01, MSG_LDW_02, MSG_ACC_02, MSG_ACC_01, MSG_ACC_05, MSG_ACC_10]}
+  RELAY_MALFUNCTION_ADDRS = {0: (MSG_HCA_01, MSG_LDW_02, MSG_ACC_02, MSG_ACC_01, MSG_ACC_05, MSG_ACC_10)}
 
   def setUp(self):
     self.packer = CANPackerSafety("vw_mlb")
@@ -169,6 +171,11 @@ class TestVolkswagenMlbLongSafety(TestVolkswagenMlbSafetyBase):
   def _acc_01_msg(self, accel):
     values = {"ACC_Sollbeschleunigung": accel}
     return self.packer.make_can_msg_safety("ACC_01", 0, values)
+
+  # ANB low-speed deceleration request to the ESP
+  def _acc_10_msg(self, accel):
+    values = {"ANB_Zielbrems_Teilbrems_Verz_Anf": accel}
+    return self.packer.make_can_msg_safety("ACC_10", 0, values)
 
   # stock cruise controls are entirely bypassed under openpilot longitudinal control
   def test_disable_control_allowed_from_cruise(self):
@@ -206,6 +213,20 @@ class TestVolkswagenMlbLongSafety(TestVolkswagenMlbSafetyBase):
         send = (controls_allowed and MIN_ACCEL <= accel <= MAX_ACCEL) or is_inactive_accel
         self.safety.set_controls_allowed(controls_allowed)
         self.assertEqual(send, self._tx(self._acc_01_msg(accel)), (controls_allowed, accel))
+
+  def test_acc_10_accel_safety_check(self):
+    # ANB deceleration request is bounded by the same longitudinal limits as ACC_01. The signal is
+    # coarsely quantized (scale 0.024, offset -20.016), so compute the expected result from the value
+    # panda actually decodes after the packer rounds, mirroring the safety's integer math.
+    for controls_allowed in [True, False]:
+      self.safety.set_controls_allowed(controls_allowed)
+      for accel in np.concatenate((np.arange(MIN_ACCEL - 2, MAX_ACCEL + 2, 0.024), [0])):
+        accel = round(accel, 3)
+        raw = math.floor((accel + 20.016) / 0.024 + 0.5)  # packer encoding (round-half-up)
+        decoded = (raw * 24 - 20016) / 1000.0  # m/s^2, matches panda's integer decode
+        is_inactive_accel = decoded == 0
+        send = (controls_allowed and MIN_ACCEL <= decoded <= MAX_ACCEL) or is_inactive_accel
+        self.assertEqual(send, self._tx(self._acc_10_msg(accel)), (controls_allowed, accel, decoded))
 
 
 if __name__ == "__main__":

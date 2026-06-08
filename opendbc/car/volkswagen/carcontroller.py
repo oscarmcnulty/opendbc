@@ -236,8 +236,13 @@ class CarController(CarControllerBase):
             accel = float(np.clip(accel, self.accel_last - 4.0 * dt, self.accel_last + 4.0 * dt))
           self.accel_last = accel
           starting = actuators.longControlState == LongCtrlState.pid and (CS.esp_hold_confirmation or CS.out.vEgo < self.CP.vEgoStopping)
-          can_sends.extend(self.CCS.create_acc_accel_control(self.packer_pt, self.CAN.pt, CS.acc_type, CC.longActive, accel,
-                                                             acc_control, stopping, starting, CS.esp_hold_confirmation))
+          acc_accel_args = (self.packer_pt, self.CAN.pt, CS.acc_type, CC.longActive, accel,
+                            acc_control, stopping, starting, CS.esp_hold_confirmation)
+          if self.CP.flags & VolkswagenFlags.MLB:
+            # MLB additionally commands ACC_10 (ANB) for braking below the ACC_01 low-speed floor
+            can_sends.extend(self.CCS.create_acc_accel_control(*acc_accel_args, CS.out.vEgo))
+          else:
+            can_sends.extend(self.CCS.create_acc_accel_control(*acc_accel_args))
 
       #if self.aeb_available:
       #  if self.frame % self.CCP.AEB_CONTROL_STEP == 0:

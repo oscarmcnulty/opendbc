@@ -506,7 +506,7 @@ class CAR(Platforms):
   )
   AUDI_Q5_MK1 = VolkswagenMLBPlatformConfig(
     [VWCarDocs("Audi Q5 2013-17")],
-    VolkswagenCarSpecs(mass=1895, wheelbase=2.81, minEnableSpeed=15 * CV.KPH_TO_MS),
+    VolkswagenCarSpecs(mass=1895, wheelbase=2.81),  # minEnableSpeed defaults to -1: ACC_10 (ANB) brakes below the ACC_01 floor
     chassis_codes={"8R"},
     wmis={WMI.AUDI_EUROPE_MPV, WMI.AUDI_GERMANY_CAR},
   )

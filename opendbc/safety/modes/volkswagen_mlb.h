@@ -37,6 +37,7 @@ static safety_config volkswagen_mlb_init(uint16_t param) {
     {MSG_ACC_02, 0, 8, .check_relay = true},
     {MSG_ACC_01, 0, 8, .check_relay = true},
     {MSG_ACC_05, 0, 8, .check_relay = true},
+    {MSG_ACC_10, 0, 8, .check_relay = true},
   };
 
   static RxCheck volkswagen_mlb_rx_checks[] = {
@@ -172,6 +173,22 @@ static bool volkswagen_mlb_tx_hook(const CANPacket_t *msg) {
 
     // Signal: ACC_01.ACC_Sollbeschleunigung (acceleration in m/s^2, scale 0.005, offset -7.22)
     desired_accel = ((((msg->data[4] & 0x07U) << 8) | msg->data[3]) * 5U) - 7220U;
+
+    violation |= longitudinal_accel_checks(desired_accel, VOLKSWAGEN_MLB_LONG_LIMITS);
+
+    if (violation) {
+      tx = false;
+    }
+  }
+
+  // Safety check for ACC_10 ANB low-speed deceleration request
+  // To avoid floating point math, scale upward and compare to pre-scaled safety m/s^2 boundaries
+  if (msg->addr == MSG_ACC_10) {
+    bool violation = false;
+    int desired_accel = 0;
+
+    // Signal: ACC_10.ANB_Zielbrems_Teilbrems_Verz_Anf (deceleration in m/s^2, scale 0.024, offset -20.016, start bit 29, len 10)
+    desired_accel = ((((msg->data[4] & 0x7FU) << 3) | (msg->data[3] >> 5)) * 24U) - 20016U;
 
     violation |= longitudinal_accel_checks(desired_accel, VOLKSWAGEN_MLB_LONG_LIMITS);
 

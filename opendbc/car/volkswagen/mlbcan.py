@@ -1,5 +1,12 @@
+from opendbc.car.common.conversions import Conversions as CV
 from opendbc.car.volkswagen.mqbcan import (crc8h2f_checksum,xor_checksum,
                                            create_lka_hud_control as mqb_create_lka_hud_control)
+
+# The drivetrain coordinator only honors ACC_01 deceleration requests above ~15 km/h. Below that we
+# command the ESP directly through the ANB (Automatische Notbremsung) channel in ACC_10 to brake to a
+# stop. Gate exactly at the ACC_01 floor so the two never request braking at the same time (below the
+# floor the ECU ignores ACC_01, above it ACC_10 stays inactive). Tune against vehicle data.
+ACC_10_MAX_SPEED = 15 * CV.KPH_TO_MS
 
 # TODO: Parameterize the hca control type (5 vs 7) and consolidate with MQB (and PQ?)
 def create_steering_control(packer, bus, apply_steer, lkas_enabled):
@@ -48,7 +55,7 @@ def acc_control_value(main_switch_on, acc_faulted, long_active):
   return acc_control
 
 
-def create_acc_accel_control(packer, bus, acc_type, acc_enabled, accel, acc_control, stopping, starting, esp_hold):
+def create_acc_accel_control(packer, bus, acc_type, acc_enabled, accel, acc_control, stopping, starting, esp_hold, v_ego):
   commands = []
 
   acc_05_values = {
@@ -71,19 +78,33 @@ def create_acc_accel_control(packer, bus, acc_type, acc_enabled, accel, acc_cont
   }
   commands.append(packer.make_can_msg("ACC_05", bus, acc_05_values))
 
+  # Below the ACC_01 floor the drivetrain coordinator faults on a longitudinal request, so keep
+  # ACC_01's request fully inactive there and hand all longitudinal authority to ACC_10 (ANB). ACC
+  # engagement status is left untouched so the system stays engaged through the handoff.
+  acc_01_active = acc_enabled and v_ego >= ACC_10_MAX_SPEED
   acc_01_values = {
     "ACC_Status_ACC": acc_control,
-    "ACC_Sollbeschleunigung": accel if acc_enabled else 0,
+    "ACC_Sollbeschleunigung": accel if acc_01_active else 0,
     "ACC_zul_Regelabw_unten": 0.2,
     "ACC_zul_Regelabw_oben": 0.2,
-    "ACC_neg_Sollbeschl_Grad": 4.0 if acc_enabled else 0,
-    "ACC_pos_Sollbeschl_Grad": 4.0 if acc_enabled else 0,
-    "ACC_Anfahren": starting,
-    "ACC_Anhalten": stopping,
+    "ACC_neg_Sollbeschl_Grad": 4.0 if acc_01_active else 0,
+    "ACC_pos_Sollbeschl_Grad": 4.0 if acc_01_active else 0,
+    "ACC_Anfahren": starting if acc_01_active else 0,
+    "ACC_Anhalten": stopping if acc_01_active else 0,
     "ACC_Dynamik": 2,
-    "ACC_Minimale_Bremsung": stopping,
+    "ACC_Minimale_Bremsung": stopping if acc_01_active else 0,
   }
   commands.append(packer.make_can_msg("ACC_01", bus, acc_01_values))
+
+  # ACC_10 (ANB): low-speed deceleration request straight to the ESP, used below the ACC_01 floor so
+  # openpilot can continue braking to a full stop. Sent as a quiescent heartbeat otherwise.
+  low_speed_braking = acc_enabled and accel < 0 and v_ego < ACC_10_MAX_SPEED
+  acc_10_values = {
+    "ANB_Zielbrems_Teilbrems_Verz_Anf": accel if low_speed_braking else 0,
+    "ANB_Zielbremsung_Freigabe": 1 if low_speed_braking else 0,  # target braking (controlled stop)
+    "ANB_Teilbremsung_Freigabe": 0,                              # partial braking, unused
+  }
+  commands.append(packer.make_can_msg("ACC_10", bus, acc_10_values))
 
   return commands
 
