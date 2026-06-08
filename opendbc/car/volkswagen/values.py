@@ -628,6 +628,16 @@ VOLKSWAGEN_VERSION_REQUEST_MULTI = bytes([uds.SERVICE_TYPE.READ_DATA_BY_IDENTIFI
   p16(uds.DATA_IDENTIFIER_TYPE.APPLICATION_DATA_IDENTIFICATION)
 VOLKSWAGEN_VERSION_RESPONSE = bytes([uds.SERVICE_TYPE.READ_DATA_BY_IDENTIFIER + 0x40])
 
+# Extra ECU identification for calibration/flashware lookup (logging only, not used for fingerprinting).
+# Adds the hardware number and system/engine type to the spare-part + SW-version already captured, which
+# together identify the exact flash dataset (e.g. for the Simos engine ECU). ODX file id is read
+# best-effort and may be empty if the ECU gates it behind an extended diagnostic session.
+VOLKSWAGEN_IDENT_REQUEST_MULTI = bytes([uds.SERVICE_TYPE.READ_DATA_BY_IDENTIFIER]) + \
+  p16(uds.DATA_IDENTIFIER_TYPE.VEHICLE_MANUFACTURER_ECU_HARDWARE_NUMBER) + \
+  p16(uds.DATA_IDENTIFIER_TYPE.SYSTEM_NAME_OR_ENGINE_TYPE)
+VOLKSWAGEN_ODX_REQUEST = bytes([uds.SERVICE_TYPE.READ_DATA_BY_IDENTIFIER]) + \
+  p16(uds.DATA_IDENTIFIER_TYPE.ODX_FILE)
+
 VOLKSWAGEN_RX_OFFSET = 0x6a
 
 FW_QUERY_CONFIG = FwQueryConfig(
@@ -647,7 +657,27 @@ FW_QUERY_CONFIG = FwQueryConfig(
       bus=bus,
       obd_multiplexing=obd_multiplexing,
     ),
-  ]],
+  ]] + [
+    # Logging-only: capture hardware number + system/engine type (and best-effort ODX file id) for
+    # calibration/flashware lookup. Restricted to the OBD-multiplexed powertrain bus where the engine
+    # and transmission answer, to keep the added fingerprint time small.
+    Request(
+      [VOLKSWAGEN_IDENT_REQUEST_MULTI],
+      [VOLKSWAGEN_VERSION_RESPONSE],
+      whitelist_ecus=[Ecu.engine, Ecu.transmission],
+      bus=1,
+      obd_multiplexing=True,
+      logging=True,
+    ),
+    Request(
+      [VOLKSWAGEN_ODX_REQUEST],
+      [VOLKSWAGEN_VERSION_RESPONSE],
+      whitelist_ecus=[Ecu.engine, Ecu.transmission],
+      bus=1,
+      obd_multiplexing=True,
+      logging=True,
+    ),
+  ],
   non_essential_ecus={Ecu.eps: list(CAR)},
   extra_ecus=[(Ecu.fwdCamera, 0x74f, None)],
   match_fw_to_car_fuzzy=match_fw_to_car_fuzzy,
