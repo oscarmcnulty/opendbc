@@ -105,9 +105,17 @@ def create_acc_accel_control(packer, bus, acc_type, acc_enabled, accel, acc_cont
   request_hold = acc_enabled and (esp_hold or (stopping and v_ego < ACC_10_STANDSTILL_SPEED))
   low_speed_braking = acc_enabled and accel < 0 and v_ego < ACC_10_MAX_SPEED and not holding
   acc_10_values = {
+    # A bare ANB_Zielbremsung request is ignored by the ESP (it releases the brakes within ~0.5s).
+    # Mimic the stock AEB sequence the ESP expects: assert the collision-mitigation context and brake
+    # prefill, and request both partial and target braking carrying the deceleration. The decel value
+    # is shared by both releases (ANB_Zielbrems_Teilbrems_Verz_Anf).
+    # TODO: prefill/CM context may need to lead the brake by a few frames; tune against vehicle data.
+    "ANB_CM_Info": 1 if low_speed_braking else 0,               # CM configuration/available
+    "ANB_CM_Anforderung": 1 if low_speed_braking else 0,        # CM request to ESP
+    "AWV1_Anf_Prefill": 1 if low_speed_braking else 0,          # brake prefill (pre-pressurize)
     "ANB_Zielbrems_Teilbrems_Verz_Anf": accel if low_speed_braking else 0,
-    "ANB_Zielbremsung_Freigabe": 1 if low_speed_braking else 0,  # target braking (controlled stop)
-    "ANB_Teilbremsung_Freigabe": 0,                              # partial braking, unused
+    "ANB_Teilbremsung_Freigabe": 1 if low_speed_braking else 0,  # partial braking release
+    "ANB_Zielbremsung_Freigabe": 1 if low_speed_braking else 0,  # target braking release (controlled stop)
     "AWV_Halten": 1 if request_hold else 0,                      # request ESP hold at standstill
     "AWV1_ECD_Anlauf": 1 if request_hold else 0,                 # spin up ESC pump to maintain clamp
   }
