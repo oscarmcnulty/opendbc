@@ -122,7 +122,9 @@ def volkswagen_mlb_checksum(address: int, sig, d: bytearray) -> int:
 
   if address == 0x397: # LDW_02
     seed = seed - 2
-  elif address in {0x102, 0x106, 0x10E}: #Getriebe_03, ESP_05, TSK_04
+  elif address in {0x100, 0x101}: # ESP_01, ESP_02 (Startwert counts down with address: 0xAB, 0xAA)
+    seed = 0xAB - (address & 0xFF)
+  elif address in {0x102, 0x104, 0x106, 0x10E}: #Getriebe_03, EPB_01, ESP_05, TSK_04
     seed = seed + 2
   elif address in {0x30C, 0x324}: # ACC_02, ACC_04
     seed = seed + 4

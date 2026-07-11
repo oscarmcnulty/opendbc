@@ -307,8 +307,8 @@ BO_ 1603 Einheiten_01: 3 Gateway_D4C7
  SG_ KBI_Einheit_Sprache : 16|8@1+ (1,0) [0|255] ""  Vector__XXX
 
 BO_ 260 EPB_01: 8 EPB_D4
- SG_ EPB_01_CHK : 0|8@1+ (1,0) [0|255] ""  Gateway_D4C7,Motor_EDC17_D4,Motor_ME17_BY,Motor_MED17_SIMOS8_D4
- SG_ EPB_01_BZ : 8|4@1+ (1,0) [0|15] ""  Gateway_D4C7,Motor_EDC17_D4,Motor_ME17_BY,Motor_MED17_SIMOS8_D4
+ SG_ CHECKSUM : 0|8@1+ (1,0) [0|255] ""  Gateway_D4C7,Motor_EDC17_D4,Motor_ME17_BY,Motor_MED17_SIMOS8_D4
+ SG_ COUNTER : 8|4@1+ (1,0) [0|15] ""  Gateway_D4C7,Motor_EDC17_D4,Motor_ME17_BY,Motor_MED17_SIMOS8_D4
  SG_ EPB_QBit_Laengsbeschleunigung : 12|1@1+ (1.0,0.0) [0.0|1] ""  Gateway_D4C7
  SG_ EPB_QBit_Pedalweg_Kuppl : 13|1@1+ (1.0,0.0) [0.0|1] ""  Gateway_D4C7,Motor_EDC17_D4,Motor_ME17_BY,Motor_MED17_SIMOS8_D4
  SG_ EPB_BCM2_Motor_Wakeup : 14|1@1+ (1.0,0.0) [0.0|1] ""  Gateway_D4C7
@@ -336,7 +336,7 @@ BO_ 781 EPB_02: 4 EPB_D4
  SG_ EPB_Bremsbelag_Warn : 9|1@1+ (1.0,0.0) [0.0|1] ""  Gateway_D4C7
 
 BO_ 256 ESP_01: 8 Gateway_D4C7
- SG_ ESP_01_CHK : 0|8@1+ (1,0) [0|255] ""  Airbag_D4,EPB_D4,Getriebe_AL551_951_D4_C7,Getriebe_DL501_C7,Getriebe_VL381_C7,Motor_EDC17_D4,Motor_ME17_BY,Motor_MED17_SIMOS8_D4
+ SG_ CHECKSUM : 0|8@1+ (1,0) [0|255] ""  Airbag_D4,EPB_D4,Getriebe_AL551_951_D4_C7,Getriebe_DL501_C7,Getriebe_VL381_C7,Motor_EDC17_D4,Motor_ME17_BY,Motor_MED17_SIMOS8_D4
  SG_ COUNTER : 8|4@1+ (1,0) [0|15] ""  Airbag_D4,EPB_D4,Getriebe_AL551_951_D4_C7,Getriebe_DL501_C7,Getriebe_VL381_C7,Motor_EDC17_D4,Motor_ME17_BY,Motor_MED17_SIMOS8_D4
  SG_ ASR_Moment_langsam : 12|10@1+ (1,0) [0|1021] ""  Airbag_D4,Getriebe_AL551_951_D4_C7,Getriebe_DL501_C7,Motor_EDC17_D4,Motor_ME17_BY,Motor_MED17_SIMOS8_D4
  SG_ ASR_MSR_Moment_schnell : 22|10@1+ (1,0) [0|1021] ""  Airbag_D4,Getriebe_AL551_951_D4_C7,Getriebe_DL501_C7,Motor_EDC17_D4,Motor_ME17_BY,Motor_MED17_SIMOS8_D4
@@ -358,7 +358,7 @@ BO_ 256 ESP_01: 8 Gateway_D4C7
  SG_ ESP_KD_Fehler : 63|1@1+ (1.0,0.0) [0.0|1] ""  Vector__XXX
 
 BO_ 257 ESP_02: 8 Gateway_D4C7
- SG_ ESP_02_CHK : 0|8@1+ (1,0) [0|255] ""  Airbag_D4,EPB_D4,Getriebe_AL551_951_D4_C7,Getriebe_DL501_C7,Getriebe_VL381_C7,Motor_EDC17_D4,Motor_ME17_BY,Motor_MED17_SIMOS8_D4
+ SG_ CHECKSUM : 0|8@1+ (1,0) [0|255] ""  Airbag_D4,EPB_D4,Getriebe_AL551_951_D4_C7,Getriebe_DL501_C7,Getriebe_VL381_C7,Motor_EDC17_D4,Motor_ME17_BY,Motor_MED17_SIMOS8_D4
  SG_ COUNTER : 8|4@1+ (1,0) [0|15] ""  Airbag_D4,EPB_D4,Getriebe_AL551_951_D4_C7,Getriebe_DL501_C7,Getriebe_VL381_C7,Motor_EDC17_D4,Motor_ME17_BY,Motor_MED17_SIMOS8_D4
  SG_ ESP_QBit_Gierrate : 12|1@1+ (1.0,0.0) [0.0|1] ""  Airbag_D4
  SG_ ESP_QBit_Laengsbeschl : 13|1@1+ (1.0,0.0) [0.0|1] ""  Airbag_D4,EPB_D4,Getriebe_AL551_951_D4_C7,Getriebe_DL501_C7,Getriebe_VL381_C7,Motor_EDC17_D4,Motor_ME17_BY,Motor_MED17_SIMOS8_D4
