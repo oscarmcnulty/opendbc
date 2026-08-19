@@ -216,11 +216,6 @@ class CarController(CarControllerBase):
           stopping = actuators.longControlState == LongCtrlState.stopping
           acc_control = self.CCS.acc_control_value(CS.out.cruiseState.available, CS.out.accFaulted, CC.longActive)
           accel = float(np.clip(actuators.accel, self.CCP.ACCEL_MIN, self.CCP.ACCEL_MAX) if CC.longActive else 0)
-          if self.CP.flags & VolkswagenFlags.MLB:
-            # Jerk-limit the accel setpoint to match ACC_neg/pos_Sollbeschl_Grad (4.0 m/s³) declared in ACC_01.
-            # It may be possible to increase ACC_neg/pos_Sollbeschl_Grad instead of doing this. Either was the ECU is faulting during high jerk.
-            dt = DT_CTRL * self.CCP.ACC_CONTROL_STEP
-            accel = float(np.clip(accel, self.accel_last - 4.0 * dt, self.accel_last + 4.0 * dt))
           starting = actuators.longControlState == LongCtrlState.pid and (CS.esp_hold_confirmation or CS.out.vEgo < 0.25)
           can_sends.extend(self.CCS.create_acc_accel_control(self.packer_pt, self.CAN.pt, CS.acc_type, CC.longActive, accel,
                                                              acc_control, stopping, starting, CS.esp_hold_confirmation))
