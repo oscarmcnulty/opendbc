@@ -18,7 +18,7 @@ class HCAMitigation:
     * For MLB racks: opportunistically disables HCA during low-torque periods before the 6-minute EPS lockout
   """
 
-  MLB_LOCKOUT_MITIGATION_START = 240. # EPS engaged time before attempting opportunistic reset (sec)
+  MLB_LOCKOUT_MITIGATION_START = 600. # EPS engaged time before attempting opportunistic reset (sec)
   MLB_LOCKOUT_LOW_TORQUE = 60         # Desired torque must be less than this before and during reset (centi-Nm)
   MLB_LOCKOUT_LOW_TORQUE_TIME = 0.5   # How long to observe low torque for before starting the reset (sec)
 
