@@ -1902,7 +1902,7 @@ CM_ SG_ 279 AWV_AWA_VZ_Anf_Lenkmomoffset "Sign of AWA steering moment offset req
 CM_ SG_ 279 AWV_AWA_Anf_Lenkmomoffset "AWA steering moment offset request";
 CM_ SG_ 279 PCF_Time_to_collision "Predicted time to collision with relevant object";
 
-VAL_ 159 EPS_HCA_Status 0 "disabled" 1 "initializing" 2 "fault" 3 "ready" 4 "rejected" 5 "active" ;
+VAL_ 159 EPS_HCA_Status 0 "disabled" 1 "initializing" 2 "fault" 3 "ready" 4 "rejected" 5 "active" 7 "active_mode_7" ;
 VAL_ 269 ACC_Freigabe_Momentenanf 0 "Momanf_nicht_freigegeben" 1 "Momanf_freigegeben" ;
 VAL_ 269 ACC_Freigabe_Verzanf 0 "Verzanf_nicht_freigegeben" 1 "Verzanf_freigegeben" ;
 VAL_ 269 ACC_Getriebestellung_P 0 "P_Stellung_nicht_angefordert" 1 "Anforderung_P_Stellung" ;

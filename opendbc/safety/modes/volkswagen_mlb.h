@@ -3,6 +3,10 @@
 #include "opendbc/safety/declarations.h"
 #include "opendbc/safety/modes/volkswagen_common.h"
 
+// ACC_01.ACC_Status_ACC, the states that tell the drivetrain ACC is regulating
+#define VOLKSWAGEN_MLB_ACC_AKTIV_REGELT        3U
+#define VOLKSWAGEN_MLB_ACC_OVERRIDE            4U
+
 static uint32_t volkswagen_mlb_compute_checksum(const CANPacket_t *msg) {
   // XOR checksum seeded with the CAN address high byte XOR low byte, except LH_EPS_03 which uses the CRC8H2F MQB/MEB checksum.
   // This only covers messages used in safety. Full reference python implementation is in opendbc/car/volkswagen/
@@ -22,6 +26,15 @@ static safety_config volkswagen_mlb_init(uint16_t param) {
   static const CanMsg VOLKSWAGEN_MLB_STOCK_TX_MSGS[] = {{MSG_HCA_01, 0, 8, .check_relay = true}, {MSG_LDW_02, 0, 8, .check_relay = true},
                                                         {MSG_LS_01, 0, 4, .check_relay = false}, {MSG_LS_01, 2, 4, .check_relay = false}};
 
+  static const CanMsg VOLKSWAGEN_MLB_LONG_TX_MSGS[] = {
+    {MSG_HCA_01, 0, 8, .check_relay = true},
+    {MSG_LS_01, 0, 4, .check_relay = false},
+    {MSG_LS_01, 2, 4, .check_relay = false},
+    {MSG_LDW_02, 0, 8, .check_relay = true},
+    {MSG_ACC_02, 0, 8, .check_relay = true},
+    {MSG_ACC_01, 0, 8, .check_relay = true},
+  };
+
   static RxCheck volkswagen_mlb_rx_checks[] = {
     {.msg = {{MSG_ESP_03, 0, 8, 50U, .max_counter = 15U, .ignore_quality_flag = true}, { 0 }, { 0 }}},
     {.msg = {{MSG_LH_EPS_03, 0, 8, 100U, .max_counter = 15U, .ignore_quality_flag = true}, { 0 }, { 0 }}},
@@ -29,12 +42,19 @@ static safety_config volkswagen_mlb_init(uint16_t param) {
     {.msg = {{MSG_TSK_04, 1, 8, 50U, .max_counter = 15U, .ignore_quality_flag = true}, { 0 }, { 0 }}},
     {.msg = {{MSG_MOTOR_03, 0, 8, 100U, .max_counter = 15U, .ignore_quality_flag = true}, { 0 }, { 0 }}},
     {.msg = {{MSG_LS_01, 0, 4, 10U, .max_counter = 15U, .ignore_quality_flag = true}, { 0 }, { 0 }}},
+    {.msg = {{MSG_ACC_02, 2, 8, 16U, .max_counter = 15U, .ignore_quality_flag = true}, { 0 }, { 0 }}},
   };
 
-  SAFETY_UNUSED(param);
   volkswagen_common_init();
 
-  return BUILD_SAFETY_CFG(volkswagen_mlb_rx_checks, VOLKSWAGEN_MLB_STOCK_TX_MSGS);
+#ifdef ALLOW_DEBUG
+  volkswagen_longitudinal = GET_FLAG(param, FLAG_VOLKSWAGEN_LONG_CONTROL);
+#else
+  SAFETY_UNUSED(param);
+#endif
+
+  return volkswagen_longitudinal ? BUILD_SAFETY_CFG(volkswagen_mlb_rx_checks, VOLKSWAGEN_MLB_LONG_TX_MSGS) : \
+                                   BUILD_SAFETY_CFG(volkswagen_mlb_rx_checks, VOLKSWAGEN_MLB_STOCK_TX_MSGS);
 }
 
 static void volkswagen_mlb_rx_hook(const CANPacket_t *msg) {
@@ -56,6 +76,19 @@ static void volkswagen_mlb_rx_hook(const CANPacket_t *msg) {
     }
 
     if (msg->addr == MSG_LS_01) {
+      // If using openpilot longitudinal, enter controls on falling edge of Set or Resume with main switch on
+      // Signal: LS_01.LS_Tip_Setzen
+      // Signal: LS_01.LS_Tip_Wiederaufnahme
+      if (volkswagen_longitudinal) {
+        bool set_button = GET_BIT(msg, 16U);
+        bool resume_button = GET_BIT(msg, 19U);
+        if ((volkswagen_set_button_prev && !set_button) ||
+            (volkswagen_resume_button_prev && !resume_button)) {
+          controls_allowed = GET_BIT(msg, 12U);  // LS_Hauptschalter
+        }
+        volkswagen_set_button_prev = set_button;
+        volkswagen_resume_button_prev = resume_button;
+      }
       // Always exit controls on rising edge of Cancel
       // Signal: LS_01.LS_Abbrechen
       if (GET_BIT(msg, 13U)) {
@@ -64,10 +97,10 @@ static void volkswagen_mlb_rx_hook(const CANPacket_t *msg) {
     }
 
     // Signal: Motor_03.MO_Fahrpedalrohwert_01
-    // Signal: Motor_03.MO_Fahrer_bremst
+    // Signal: Motor_03.MO_BLS (bit 34)
     if (msg->addr == MSG_MOTOR_03) {
       gas_pressed = msg->data[6] != 0U;
-      volkswagen_brake_pedal_switch = GET_BIT(msg, 35U);
+      volkswagen_brake_pedal_switch = GET_BIT(msg, 34U);
     }
 
     if (msg->addr == MSG_ESP_05) {
@@ -85,7 +118,9 @@ static void volkswagen_mlb_rx_hook(const CANPacket_t *msg) {
       int acc_status = (msg->data[7] & 0xC0U) >> 6;
       bool cruise_engaged = (acc_status == 1) || (acc_status == 2);
 
-      pcm_cruise_check(cruise_engaged);
+      if (!volkswagen_longitudinal) {
+        pcm_cruise_check(cruise_engaged);
+      }
     }
   }
 }
@@ -102,6 +137,15 @@ static bool volkswagen_mlb_tx_hook(const CANPacket_t *msg) {
     .type = TorqueDriverLimited,
   };
 
+  // longitudinal limits
+  // acceleration in m/s2 * 1000 to avoid floating point math
+  // Braking limited to -2.95m/s^2: -3.0 faults the 2014 Audi Q5 ACC ECU (requires ignition cycle to clear)
+  const LongitudinalLimits VOLKSWAGEN_MLB_LONG_LIMITS = {
+    .max_accel = 2000,
+    .min_accel = -2950,
+    .inactive_accel = 0,
+  };
+
   bool tx = true;
 
   // Safety check for HCA_01 Heading Control Assist torque
@@ -112,6 +156,28 @@ static bool volkswagen_mlb_tx_hook(const CANPacket_t *msg) {
     bool steer_req = (steer_status == 5) || (steer_status == 7);
 
     if (steer_torque_cmd_checks(desired_torque, steer_req, VOLKSWAGEN_MLB_STEERING_LIMITS)) {
+      tx = false;
+    }
+  }
+
+  // Safety check for ACC_01 acceleration request
+  // To avoid floating point math, scale upward and compare to pre-scaled safety m/s^2 boundaries
+  if (msg->addr == MSG_ACC_01) {
+    bool violation = false;
+    int desired_accel = 0;
+
+    // Signal: ACC_01.ACC_Sollbeschleunigung (acceleration in m/s^2, scale 0.005, offset -7.22)
+    desired_accel = ((((msg->data[4] & 0x07U) << 8) | msg->data[3]) * 5U) - 7220U;
+
+    violation |= longitudinal_accel_checks(desired_accel, VOLKSWAGEN_MLB_LONG_LIMITS);
+
+    // Signal: ACC_01.ACC_Status_ACC
+    uint8_t acc_status = (msg->data[7] >> 4) & 0x07U;
+    bool acc_status_active = (acc_status == VOLKSWAGEN_MLB_ACC_AKTIV_REGELT) ||
+                             (acc_status == VOLKSWAGEN_MLB_ACC_OVERRIDE);
+    violation |= acc_status_active && !controls_allowed;
+
+    if (violation) {
       tx = false;
     }
   }
