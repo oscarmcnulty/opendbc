@@ -403,8 +403,8 @@ class CarState(CarStateBase):
     # MLB steering racks have a 6min max engagement. After that time it will return status = 'rejected' for ~2.0s and not execute torque requests. After the
     # ~2.0s lockout period it will return to accepting torque requests by itself. This max engagement timer can also be reset by disabling control for ~1.1s.
     # This warning trigger gives advance notice to the driver that steering is about to become unavailable so they can take control.
+    self.hca_active_frames += 1
     if hca_status in ("ACTIVE", "ACTIVE_MODE_7"):
-      self.hca_active_frames += 1
       self.hca_inactive_frames = 0
     else:
       self.hca_inactive_frames += 1

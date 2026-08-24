@@ -49,8 +49,7 @@ class HCAMitigation:
     # ~2.0s lockout period it will return to accepting torque requests by itself. This max engagement timer can also be reset by disabling control for ~1.1s.
     # Attempt to mitigate this by opportunistically disabling HCA during periods of low torque desired.
     if self._eps_timer_workaround:
-      if apply_torque != 0:
-        self._hca_active_frames += self._steer_step
+      self._hca_active_frames += self._steer_step
 
       if (self._hca_active_frames >= self._frames_for_mitigation_start
           and abs(desired_torque) <= self.MLB_LOCKOUT_LOW_TORQUE):
