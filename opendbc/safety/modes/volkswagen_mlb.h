@@ -29,6 +29,7 @@ static safety_config volkswagen_mlb_init(uint16_t param) {
     {.msg = {{MSG_TSK_04, 1, 8, 50U, .max_counter = 15U, .ignore_quality_flag = true}, { 0 }, { 0 }}},
     {.msg = {{MSG_MOTOR_03, 0, 8, 100U, .max_counter = 15U, .ignore_quality_flag = true}, { 0 }, { 0 }}},
     {.msg = {{MSG_LS_01, 0, 4, 10U, .max_counter = 15U, .ignore_quality_flag = true}, { 0 }, { 0 }}},
+    {.msg = {{MSG_ACC_02, 2, 8, 16U, .max_counter = 15U, .ignore_quality_flag = true}, { 0 }, { 0 }}},
   };
 
   SAFETY_UNUSED(param);
@@ -64,10 +65,10 @@ static void volkswagen_mlb_rx_hook(const CANPacket_t *msg) {
     }
 
     // Signal: Motor_03.MO_Fahrpedalrohwert_01
-    // Signal: Motor_03.MO_Fahrer_bremst
+    // Signal: Motor_03.MO_BLS (bit 34)
     if (msg->addr == MSG_MOTOR_03) {
       gas_pressed = msg->data[6] != 0U;
-      volkswagen_brake_pedal_switch = GET_BIT(msg, 35U);
+      volkswagen_brake_pedal_switch = GET_BIT(msg, 34U);
     }
 
     if (msg->addr == MSG_ESP_05) {
