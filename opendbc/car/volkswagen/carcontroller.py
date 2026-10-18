@@ -220,6 +220,15 @@ class CarController(CarControllerBase):
           can_sends.extend(self.CCS.create_acc_accel_control(self.packer_pt, self.CAN.pt, CS.acc_type, CC.longActive, accel,
                                                              acc_control, stopping, starting, CS.esp_hold_confirmation))
 
+          # EPB-relay path: stream ACC_05 on the camera / non-engine side of the extended CAN
+          # (self.CAN.cam) for the secondary (EPB-relay) panda, which taps that side. Sent every
+          # cycle; braking is gated to < 15 km/h (below the ESP ECD decel floor) and never reaches
+          # the engine-side ESP, so the primary ACC_05 on self.CAN.pt is untouched.
+          if self.CP.flags & VolkswagenFlags.MLB:
+            epb_brake_active = bool(CC.longActive and accel < 0 and CS.out.vEgo < (15. * CV.KPH_TO_MS))
+            can_sends.append(mlbcan.create_acc_05_epb(self.packer_pt, self.CAN.cam, accel, epb_brake_active,
+                                                      acc_control, stopping, starting))
+
         self.accel_last = accel
 
       #if self.aeb_available:

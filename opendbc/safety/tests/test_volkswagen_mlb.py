@@ -137,7 +137,7 @@ class TestVolkswagenMlbLongSafety(TestVolkswagenMlbSafetyBase):
   SAFETY_PARAM = VolkswagenSafetyFlags.LONG_CONTROL
 
   TX_MSGS = [[MSG_HCA_01, 0], [MSG_LS_01, 0], [MSG_LS_01, 2], [MSG_LDW_02, 0],
-             [MSG_ACC_02, 0], [MSG_ACC_01, 0], [MSG_ACC_05, 0]]
+             [MSG_ACC_02, 0], [MSG_ACC_01, 0], [MSG_ACC_05, 0], [MSG_ACC_05, 2]]
   FWD_BLACKLISTED_ADDRS = {2: [MSG_HCA_01, MSG_LDW_02, MSG_ACC_02, MSG_ACC_01, MSG_ACC_05]}
   RELAY_MALFUNCTION_ADDRS = {0: (MSG_HCA_01, MSG_LDW_02, MSG_ACC_02, MSG_ACC_01, MSG_ACC_05)}
 
