@@ -217,17 +217,20 @@ class CarController(CarControllerBase):
           acc_control = self.CCS.acc_control_value(CS.out.cruiseState.available, CS.out.accFaulted, CC.longActive)
           accel = float(np.clip(actuators.accel, self.CCP.ACCEL_MIN, self.CCP.ACCEL_MAX) if CC.longActive else 0)
           starting = actuators.longControlState == LongCtrlState.pid and (CS.esp_hold_confirmation or CS.out.vEgo < 0.25)
-          can_sends.extend(self.CCS.create_acc_accel_control(self.packer_pt, self.CAN.pt, CS.acc_type, CC.longActive, accel,
-                                                             acc_control, stopping, starting, CS.esp_hold_confirmation))
+          acc_msgs = self.CCS.create_acc_accel_control(self.packer_pt, self.CAN.pt, CS.acc_type, CC.longActive, accel,
+                                                       acc_control, stopping, starting, CS.esp_hold_confirmation)
+          can_sends.extend(acc_msgs)
 
-          # EPB-relay path: stream ACC_05 on the camera / non-engine side of the extended CAN
-          # (self.CAN.cam) for the secondary (EPB-relay) panda, which taps that side. Sent every
-          # cycle; braking is gated to < 15 km/h (below the ESP ECD decel floor) and never reaches
-          # the engine-side ESP, so the primary ACC_05 on self.CAN.pt is untouched.
+          # EPB-relay path: mirror the ACC_05 we just built byte-for-byte onto the camera / non-engine
+          # side of the extended CAN (self.CAN.cam) for the secondary (EPB-relay) panda, which taps that
+          # side. Reusing the same packed frame preserves its +1 counter and checksum -- building a second
+          # ACC_05 via the packer bumps the name-keyed counter again, so each bus would step by 2 and skip
+          # values, failing the secondary's strict +1 heartbeat check (and corrupting the stock ACC_05
+          # counter). The stock ACC_05 already carries the braking request (ACC_Freigabe_Verzanf /
+          # ACC_Verz_anf); the secondary's own <=20 km/h cap gates injection.
           if self.CP.flags & VolkswagenFlags.MLB:
-            epb_brake_active = bool(CC.longActive and accel < 0 and CS.out.vEgo < (15. * CV.KPH_TO_MS))
-            can_sends.append(mlbcan.create_acc_05_epb(self.packer_pt, self.CAN.cam, accel, epb_brake_active,
-                                                      acc_control, stopping, starting))
+            acc_05_addr, acc_05_dat, _ = acc_msgs[0]
+            can_sends.append((acc_05_addr, acc_05_dat, self.CAN.cam))
 
         self.accel_last = accel
 

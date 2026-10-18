@@ -88,35 +88,6 @@ def create_acc_accel_control(packer, bus, acc_type, acc_enabled, accel, acc_cont
   return commands
 
 
-def create_acc_05_epb(packer, bus, accel, brake_active, acc_control, stopping, starting):
-  # ACC_05 streamed to the EPB-relay (secondary) panda on the camera / non-engine side of the
-  # extended CAN (self.CAN.cam). Sent every cycle as a heartbeat; it carries a deceleration request
-  # only while brake_active (the caller gates that to < 15 km/h, below the ESP ECD decel floor).
-  # When not active it is a neutral frame, so the relay stays passive and forwards the EPB module's
-  # own EPB_01 unmodified. The relay reads ACC_Verz_anf + ACC_Freigabe_Verzanf and injects them into
-  # EPB_01.EPB_Verzoeg_Anf. This never reaches the engine-side ESP (that side gets the primary ACC_05
-  # on self.CAN.pt), so it cannot perturb normal ACC.
-  values = {
-    "ACC_Freigabe_Momentenanf": 0,
-    "ACC_Freigabe_Verzanf": 1 if brake_active else 0,            # relay "brake now" flag
-    "ACC_Getriebestellung_P": 0,
-    "ACC_limitierte_Anfahrdyn": 0,
-    "ACC_Momentenanforderung": 0,
-    "ACC_zul_Regelabw": 0,
-    "ACC_Verz_anf": accel if brake_active else 0,                # desired decel m/s^2 (0.005 .. -7.22)
-    "ACC_Loeseanforderung": starting,
-    "ACC_StartStopp_Info": 0 if stopping else 1,
-    "ACC_Vorbefuellung_Bremsanlage": 1 if brake_active else 0,
-    "ACC_ax_Getriebe": accel if brake_active else 0,
-    "ACC_Status_ACC": acc_control,
-    "ACC_Betaetigung_EPB": 1 if (brake_active and stopping) else 0,   # request static clamp at standstill
-    "ACC_Beeinflussung_ESP": 0,
-    "ACC_Anhalten": stopping,
-    "ACC_KD_Fehler": 0,
-  }
-  return packer.make_can_msg("ACC_05", bus, values)
-
-
 def acc_hud_status_value(main_switch_on, acc_faulted, long_active):
   # TODO: happens to resemble the ACC control value for now, but extend this for init/gas override later
   return acc_control_value(main_switch_on, acc_faulted, long_active)
