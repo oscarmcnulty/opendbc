@@ -1,3 +1,4 @@
+import os
 import numpy as np
 from opendbc.can import CANPacker
 from opendbc.car import Bus, DT_CTRL, structs
@@ -125,10 +126,11 @@ class CarController(CarControllerBase):
     self.mlb_hud_text = 0
     self.texte_timer = 0
 
-    # ACC-radar diagnostic poller (TX-only, read-only measuring blocks on bus 2 / CanBus.cam).
-    # Responses are captured in the rlog and decoded offline. On by default on MLB for this debug
-    # build. Requires matching panda TX allowlist entries (tp20diag.REQUIRED_TX_ALLOWLIST) + reflash.
-    self.acc_diag = AccDiagPoller() if (CP.flags & VolkswagenFlags.MLB) else None
+    # ACC-radar diagnostic poller (TX-only, reads measuring blocks on bus 2 / CanBus.cam).
+    # DISABLED by default: holding a TP2.0 diagnostic session on the radar faults the stock ACC
+    # (and empties its object output), so it must not run during normal driving. Opt in for a
+    # controlled test with env VW_ACC_DIAG_POLL=1. Needs the panda TX allowlist (already flashed).
+    self.acc_diag = AccDiagPoller() if (os.getenv("VW_ACC_DIAG_POLL") and (CP.flags & VolkswagenFlags.MLB)) else None
 
   def update(self, CC, CS, now_nanos):
     actuators = CC.actuators
