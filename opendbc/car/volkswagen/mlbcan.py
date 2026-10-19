@@ -64,7 +64,12 @@ def create_acc_accel_control(packer, bus, acc_type, acc_enabled, accel, acc_cont
     "ACC_Vorbefuellung_Bremsanlage": 1 if accel < 0 else 0,
     "ACC_ax_Getriebe": accel, # positive or negative accel requested
     "ACC_Status_ACC": acc_control,
-    "ACC_Betaetigung_EPB": 0,
+    # EPB motor-clamp request for the standstill hold. The secondary EPB-relay panda reads this
+    # (ACC_05 bit60) and, only once stopped (<2 km/h), rewrites ESP_05.ESP_Anforderung_EPB to clamp
+    # the parking brake so the car holds instead of creeping (the ABS has no autohold on this car).
+    # Asserted through the whole stopping state -- the panda's own speed gate defers the actual
+    # clamp to standstill -- and drops on starting so the EPB releases ~1 s before launch.
+    "ACC_Betaetigung_EPB": 1 if stopping else 0,
     "ACC_Beeinflussung_ESP": 0,
     "ACC_Anhalten": stopping,
     "ACC_KD_Fehler": 0,
