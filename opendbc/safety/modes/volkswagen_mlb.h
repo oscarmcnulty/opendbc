@@ -24,9 +24,13 @@ static safety_config volkswagen_mlb_init(uint16_t param) {
     {MSG_LDW_02, 0, 8, .check_relay = true},
     {MSG_LS_01, 0, 4, .check_relay = false},
     {MSG_LS_01, 2, 4, .check_relay = false},
-    // Experimental ACC-radar diagnostic probe (tp20diag.py, MODE="probe"): TP2.0 channel-setup
-    // on bus 2 only. check_relay=false. Read-only diagnostics; software-gated off by default.
+    // Experimental ACC-radar diagnostic poller (tp20diag.py): TP2.0 channel setup + channel
+    // data (params/keepalive/ack/measuring-block reads) on bus 2 only. check_relay=false.
+    // Read-only KWP diagnostics (0x21 measuring blocks); no writes.
     {MSG_TP20_ACC_SETUP, 2, 7, .check_relay = false},
+    {MSG_TP20_ACC_CHAN, 2, 6, .check_relay = false},   // params (A0 ...)
+    {MSG_TP20_ACC_CHAN, 2, 1, .check_relay = false},   // keepalive (A3) / ack (Bx)
+    {MSG_TP20_ACC_CHAN, 2, 5, .check_relay = false},   // measuring-block read (1x 00 02 21 NN)
   };
 
   static const CanMsg VOLKSWAGEN_MLB_LONG_TX_MSGS[] = {
@@ -41,9 +45,13 @@ static safety_config volkswagen_mlb_init(uint16_t param) {
     // taps that side. check_relay=false -> not part of stock-ACC relay arbitration; forwarding is
     // unchanged (the bus-0 check_relay entry still blocks a bus-2 ACC_05 from reaching the engine).
     {MSG_ACC_05, 2, 8, .check_relay = false},
-    // Experimental ACC-radar diagnostic probe (tp20diag.py, MODE="probe"): TP2.0 channel-setup
-    // on bus 2 only. check_relay=false. Read-only diagnostics; software-gated off by default.
+    // Experimental ACC-radar diagnostic poller (tp20diag.py): TP2.0 channel setup + channel
+    // data (params/keepalive/ack/measuring-block reads) on bus 2 only. check_relay=false.
+    // Read-only KWP diagnostics (0x21 measuring blocks); no writes.
     {MSG_TP20_ACC_SETUP, 2, 7, .check_relay = false},
+    {MSG_TP20_ACC_CHAN, 2, 6, .check_relay = false},   // params (A0 ...)
+    {MSG_TP20_ACC_CHAN, 2, 1, .check_relay = false},   // keepalive (A3) / ack (Bx)
+    {MSG_TP20_ACC_CHAN, 2, 5, .check_relay = false},   // measuring-block read (1x 00 02 21 NN)
   };
 
   static RxCheck volkswagen_mlb_rx_checks[] = {

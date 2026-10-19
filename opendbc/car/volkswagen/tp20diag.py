@@ -38,7 +38,9 @@ SETUP_DATA = bytes([ACC_ADDR, 0xC0, 0x00, 0x10, 0x00, 0x03, 0x01])
 TESTER_TX = 0x4AB            # tester -> ECU (we transmit on this)
 ECU_TX = 0x300              # ECU -> tester (responses arrive here; logged, not TXed)
 
-MODE = "probe"               # "probe" (setup only) or "poll" (full read) -- see STAGED ROLLOUT
+MODE = "poll"                # "probe" (setup only) or "poll" (full read) -- see STAGED ROLLOUT
+# Stage-1 probe (route 000001e7) confirmed the radar is direct on bus 2 and assigns the same
+# channel as the gateway: ECU_TX=0x300, TESTER_TX=0x4AB (the defaults above), so no id change.
 
 # Measuring-block groups to cycle through in poll mode (the ones found to carry data).
 POLL_GROUPS = [1, 2, 7, 8, 10, 12, 13, 14, 15, 48, 49]
