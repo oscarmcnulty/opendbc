@@ -39,6 +39,7 @@ bool volkswagen_brake_pressure_detected = false;
 #define MSG_LS_01       0x10BU   // TX by OP, ACC control buttons for cancel/resume
 #define MSG_MOTOR_03    0x105U   // RX from ECU, for driver throttle input and brake switch status
 #define MSG_TSK_04      0x10EU   // RX from ECU, for ACC status from drivetrain coordinator
+#define MSG_TP20_ACC_SETUP  0x200U  // TX by OP (experimental, bus 2 only), ACC-radar TP2.0 channel setup
 
 static void volkswagen_common_init(void) {
   volkswagen_longitudinal = false;
