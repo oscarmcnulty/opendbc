@@ -5,6 +5,7 @@ from opendbc.car.lateral import apply_driver_steer_torque_limits
 from opendbc.car.common.conversions import Conversions as CV
 from opendbc.car.interfaces import CarControllerBase
 from opendbc.car.volkswagen import mebcan, mlbcan, mqbcan, pqcan
+from opendbc.car.volkswagen.tp20diag import AccDiagPoller
 from opendbc.car.volkswagen.values import CanBus, CarControllerParams, VolkswagenFlags
 
 VisualAlert = structs.CarControl.HUDControl.VisualAlert
@@ -123,6 +124,11 @@ class CarController(CarControllerBase):
     self.last_lead_distance_bars = 0
     self.mlb_hud_text = 0
     self.texte_timer = 0
+
+    # ACC-radar diagnostic poller (TX-only, read-only measuring blocks on bus 2 / CanBus.cam).
+    # Responses are captured in the rlog and decoded offline. On by default on MLB for this debug
+    # build. Requires matching panda TX allowlist entries (tp20diag.REQUIRED_TX_ALLOWLIST) + reflash.
+    self.acc_diag = AccDiagPoller() if (CP.flags & VolkswagenFlags.MLB) else None
 
   def update(self, CC, CS, now_nanos):
     actuators = CC.actuators
@@ -303,5 +309,10 @@ class CarController(CarControllerBase):
 
     self.lead_distance_bars_last = hud_control.leadDistanceBars
     self.gra_acc_counter_last = CS.gra_stock_values["COUNTER"]
+
+    # Experimental ACC-radar diagnostic poll (gated off by default; TX-only, bus 2).
+    if self.acc_diag is not None:
+      can_sends += self.acc_diag.update(self.frame, self.CAN.cam)
+
     self.frame += 1
     return new_actuators, can_sends
