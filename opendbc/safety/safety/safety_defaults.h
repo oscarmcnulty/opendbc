@@ -49,3 +49,28 @@ const safety_hooks alloutput_hooks = {
   .rx = default_rx_hook,
   .tx = alloutput_tx_hook,
 };
+
+// *** VW EPB-relay passthrough (secondary inline panda) ***
+// Autonomous bridge that forwards bus 0 <-> bus 2 so the EPB module and ABS keep talking,
+// while board/drivers/epb_relay.h rewrites EPB_01 to inject sub-15 km/h braking. There is no
+// openpilot/USB host on this panda: ACC_05 liveness drives engage/disengage (see main.c tick
+// handler + epb_relay_should_engage). Here we only declare: forward everything (.fwd = NULL),
+// never allow a host-initiated TX (forwarded frames bypass the tx hook), and keep forwarding
+// disabled until the tick handler engages us.
+static safety_config vw_epb_relay_init(uint16_t param) {
+  UNUSED(param);
+  controls_allowed = false;
+  return (safety_config){NULL, 0, NULL, 0, true}; // disable_forwarding=true -> blocked until engaged
+}
+
+static bool vw_epb_relay_tx_hook(const CANPacket_t *to_send) {
+  UNUSED(to_send);
+  return false;  // no host TX; our only output is forwarded (rewritten) EPB sub-bus traffic
+}
+
+const safety_hooks vw_epb_relay_hooks = {
+  .init = vw_epb_relay_init,
+  .rx = default_rx_hook,
+  .tx = vw_epb_relay_tx_hook,
+  // .fwd = NULL -> forward every message on the default bus 0<->2 topology
+};

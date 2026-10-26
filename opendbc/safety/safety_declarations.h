@@ -32,6 +32,7 @@
 #define SAFETY_HYUNDAI_CANFD 28U
 #define SAFETY_RIVIAN 33U
 #define SAFETY_VOLKSWAGEN_MEB 34U
+#define SAFETY_VW_EPB_RELAY 35U   // secondary inline panda: ACC_05-gated EPB-brake relay (bus 0<->2 passthrough)
 
 #define GET_BIT(msg, b) ((bool)!!(((msg)->data[((b) / 8U)] >> ((b) % 8U)) & 0x1U))
 #define GET_BYTE(msg, b) ((msg)->data[(b)])
@@ -312,6 +313,7 @@ extern const safety_hooks chrysler_hooks;
 extern const safety_hooks elm327_hooks;
 extern const safety_hooks nooutput_hooks;
 extern const safety_hooks alloutput_hooks;
+extern const safety_hooks vw_epb_relay_hooks;
 extern const safety_hooks ford_hooks;
 extern const safety_hooks gm_hooks;
 extern const safety_hooks honda_nidec_hooks;
