@@ -12,6 +12,12 @@ from opendbc.car.volkswagen.values import CanBus, CarControllerParams, Volkswage
 VisualAlert = structs.CarControl.HUDControl.VisualAlert
 LongCtrlState = structs.CarControl.Actuators.LongControlState
 
+# EPB-hold timeout test: while stopping, request 0 decel for ZERO_FRAMES ACC frames after every
+# ZERO_PERIOD ACC frames (50 Hz) of stopAccel, to find how long a decel drop must be to reset the
+# ~5.8 s ABS hold timeout. ACC_Anhalten / ACC_Betaetigung_EPB stay asserted throughout.
+EPB_TEST_ZERO_PERIOD = int(os.getenv("VW_EPB_TEST_ZERO_PERIOD", "225"))  # 4.5 s
+EPB_TEST_ZERO_FRAMES = int(os.getenv("VW_EPB_TEST_ZERO_FRAMES", "5"))    # 0.1 s
+
 
 class HCAMitigation:
   """
@@ -115,6 +121,7 @@ class CarController(CarControllerBase):
     self.apply_curvature_last = 0.
     self.steering_power_last = 0
     self.accel_last = 0.
+    self.stopping_frames = 0
     self.lead_distance_bars_last = None
     self.distance_bar_frame = 0
     self.gra_acc_counter_last = None
@@ -224,6 +231,12 @@ class CarController(CarControllerBase):
           stopping = actuators.longControlState == LongCtrlState.stopping
           acc_control = self.CCS.acc_control_value(CS.out.cruiseState.available, CS.out.accFaulted, CC.longActive)
           accel = float(np.clip(actuators.accel, self.CCP.ACCEL_MIN, self.CCP.ACCEL_MAX) if CC.longActive else 0)
+          if self.CP.flags & VolkswagenFlags.MLB and stopping and CC.longActive:
+            if self.stopping_frames % (EPB_TEST_ZERO_PERIOD + EPB_TEST_ZERO_FRAMES) >= EPB_TEST_ZERO_PERIOD:
+              accel = 0.
+            self.stopping_frames += 1
+          else:
+            self.stopping_frames = 0
           starting = actuators.longControlState == LongCtrlState.pid and (CS.esp_hold_confirmation or CS.out.vEgo < 0.25)
           acc_msgs = self.CCS.create_acc_accel_control(self.packer_pt, self.CAN.pt, CS.acc_type, CC.longActive, accel,
                                                        acc_control, stopping, starting, CS.esp_hold_confirmation)
