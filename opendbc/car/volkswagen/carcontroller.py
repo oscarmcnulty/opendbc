@@ -12,10 +12,11 @@ from opendbc.car.volkswagen.values import CanBus, CarControllerParams, Volkswage
 VisualAlert = structs.CarControl.HUDControl.VisualAlert
 LongCtrlState = structs.CarControl.Actuators.LongControlState
 
-# EPB-hold timeout test: while stopping, alternate the static stopAccel decel by one DBC LSB
-# (ACC_Verz_anf / ACC_Sollbeschleunigung, 0.005 m/s^2) every ACC frame, to see whether the ~5.8 s
-# ABS hold timeout is caused by the same decel value being requested for too long. Only adds braking.
-EPB_TEST_JITTER = float(os.getenv("VW_EPB_TEST_JITTER", "0.005"))  # m/s^2
+# EPB-hold timeout test: while stopping, alternate the static stopAccel decel every ACC frame, to see
+# whether the ~5.8 s ABS hold timeout is caused by the same decel value being requested for too long.
+# The EPB-relay panda requantizes ACC_Verz_anf (0.005) into EPB_01.EPB_Verzoeg_Anf (0.048), so the step
+# must be >= 0.048 to change what the ABS sees (-0.55 -> raw 154, -0.60 -> raw 153). Only adds braking.
+EPB_TEST_JITTER = float(os.getenv("VW_EPB_TEST_JITTER", "0.05"))  # m/s^2
 
 
 class HCAMitigation:
