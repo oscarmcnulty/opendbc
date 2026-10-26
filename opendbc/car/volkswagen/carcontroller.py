@@ -12,6 +12,11 @@ from opendbc.car.volkswagen.values import CanBus, CarControllerParams, Volkswage
 VisualAlert = structs.CarControl.HUDControl.VisualAlert
 LongCtrlState = structs.CarControl.Actuators.LongControlState
 
+# EPB-hold timeout test: while stopping, alternate the static stopAccel decel by one DBC LSB
+# (ACC_Verz_anf / ACC_Sollbeschleunigung, 0.005 m/s^2) every ACC frame, to see whether the ~5.8 s
+# ABS hold timeout is caused by the same decel value being requested for too long. Only adds braking.
+EPB_TEST_JITTER = float(os.getenv("VW_EPB_TEST_JITTER", "0.005"))  # m/s^2
+
 
 class HCAMitigation:
   """
@@ -115,6 +120,7 @@ class CarController(CarControllerBase):
     self.apply_curvature_last = 0.
     self.steering_power_last = 0
     self.accel_last = 0.
+    self.stopping_frames = 0
     self.lead_distance_bars_last = None
     self.distance_bar_frame = 0
     self.gra_acc_counter_last = None
@@ -224,6 +230,11 @@ class CarController(CarControllerBase):
           stopping = actuators.longControlState == LongCtrlState.stopping
           acc_control = self.CCS.acc_control_value(CS.out.cruiseState.available, CS.out.accFaulted, CC.longActive)
           accel = float(np.clip(actuators.accel, self.CCP.ACCEL_MIN, self.CCP.ACCEL_MAX) if CC.longActive else 0)
+          if self.CP.flags & VolkswagenFlags.MLB and stopping and CC.longActive:
+            self.stopping_frames += 1
+            accel = max(accel - EPB_TEST_JITTER * (self.stopping_frames % 2), self.CCP.ACCEL_MIN)
+          else:
+            self.stopping_frames = 0
           starting = actuators.longControlState == LongCtrlState.pid and (CS.esp_hold_confirmation or CS.out.vEgo < 0.25)
           acc_msgs = self.CCS.create_acc_accel_control(self.packer_pt, self.CAN.pt, CS.acc_type, CC.longActive, accel,
                                                        acc_control, stopping, starting, CS.esp_hold_confirmation)
