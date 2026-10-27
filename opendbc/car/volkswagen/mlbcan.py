@@ -48,7 +48,8 @@ def acc_control_value(main_switch_on, acc_faulted, long_active):
   return acc_control
 
 
-def create_acc_accel_control(packer, bus, acc_type, acc_enabled, accel, acc_control, stopping, starting, esp_hold):
+def create_acc_accel_control(packer, bus, acc_type, acc_enabled, accel, acc_control, stopping, starting, esp_hold,
+                             epb_clamp=False):
   commands = []
 
   acc_05_values = {
@@ -64,12 +65,11 @@ def create_acc_accel_control(packer, bus, acc_type, acc_enabled, accel, acc_cont
     "ACC_Vorbefuellung_Bremsanlage": 1 if accel < 0 else 0,
     "ACC_ax_Getriebe": accel, # positive or negative accel requested
     "ACC_Status_ACC": acc_control,
-    # EPB motor-clamp request for the standstill hold. The secondary EPB-relay panda reads this
-    # (ACC_05 bit60) and, only once stopped (<2 km/h), rewrites ESP_05.ESP_Anforderung_EPB to clamp
-    # the parking brake so the car holds instead of creeping (the ABS has no autohold on this car).
-    # Asserted through the whole stopping state -- the panda's own speed gate defers the actual
-    # clamp to standstill -- and drops on starting so the EPB releases ~1 s before launch.
-    "ACC_Betaetigung_EPB": 1 if stopping else 0,
+    # EPB motor-clamp request (a held level: 1 = clamp, 0 = release). The EPB module decodes this
+    # directly; the EPB-relay panda re-sends our bus-2 ACC_05 onto the EPB's CAN so it receives it.
+    # Asserted only after a few seconds of hydraulic standstill hold, before the ABS's ~5.7 s
+    # standstill-hold limit releases the brakes, and held until we leave the stopping state.
+    "ACC_Betaetigung_EPB": 1 if epb_clamp else 0,
     "ACC_Beeinflussung_ESP": 0,
     "ACC_Anhalten": stopping,
     "ACC_KD_Fehler": 0,

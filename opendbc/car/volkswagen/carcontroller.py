@@ -12,6 +12,11 @@ from opendbc.car.volkswagen.values import CanBus, CarControllerParams, Volkswage
 VisualAlert = structs.CarControl.HUDControl.VisualAlert
 LongCtrlState = structs.CarControl.Actuators.LongControlState
 
+# MLB EPB clamp handoff: the ABS ends an EPB-requested hydraulic standstill hold ~5.7 s after the car
+# stops. Request the EPB motor clamp (ACC_05.ACC_Betaetigung_EPB) after this long at standstill so the
+# clamp is closed before the hydraulic hold times out, and keep it until the stopping state ends.
+EPB_CLAMP_DELAY = float(os.getenv("VW_EPB_CLAMP_DELAY", "4.5"))  # s
+
 
 class HCAMitigation:
   """
@@ -115,6 +120,7 @@ class CarController(CarControllerBase):
     self.apply_curvature_last = 0.
     self.steering_power_last = 0
     self.accel_last = 0.
+    self.stopped_frames = 0
     self.lead_distance_bars_last = None
     self.distance_bar_frame = 0
     self.gra_acc_counter_last = None
@@ -225,8 +231,16 @@ class CarController(CarControllerBase):
           acc_control = self.CCS.acc_control_value(CS.out.cruiseState.available, CS.out.accFaulted, CC.longActive)
           accel = float(np.clip(actuators.accel, self.CCP.ACCEL_MIN, self.CCP.ACCEL_MAX) if CC.longActive else 0)
           starting = actuators.longControlState == LongCtrlState.pid and (CS.esp_hold_confirmation or CS.out.vEgo < 0.25)
+          epb_kwargs = {}
+          if self.CP.flags & VolkswagenFlags.MLB:
+            # counts standstill time within one stop, so a standstill flicker after clamping doesn't release it
+            if stopping and CC.longActive:
+              self.stopped_frames += CS.out.standstill
+            else:
+              self.stopped_frames = 0
+            epb_kwargs["epb_clamp"] = self.stopped_frames * DT_CTRL * self.CCP.ACC_CONTROL_STEP >= EPB_CLAMP_DELAY
           acc_msgs = self.CCS.create_acc_accel_control(self.packer_pt, self.CAN.pt, CS.acc_type, CC.longActive, accel,
-                                                       acc_control, stopping, starting, CS.esp_hold_confirmation)
+                                                       acc_control, stopping, starting, CS.esp_hold_confirmation, **epb_kwargs)
           can_sends.extend(acc_msgs)
 
           # EPB-relay path: mirror the ACC_05 we just built byte-for-byte onto the camera / non-engine
