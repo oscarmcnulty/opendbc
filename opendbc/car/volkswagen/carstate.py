@@ -18,6 +18,7 @@ class CarState(CarStateBase):
     self.button_states = {button.event_type: False for button in self.CCP.BUTTONS}
     self.esp_hold_confirmation = False
     self.esp_standstill = False
+    self.esp_epb_decel_active = False
     self.upscale_lead_car_signal = False
     self.eps_stock_values = False
     self.acc_type = 0
@@ -352,6 +353,8 @@ class CarState(CarStateBase):
     ret.brakePressed = brake_pedal_pressed or brake_pressure_detected
     ret.parkingBrake = bool(pt_cp.vl["Kombi_01"]["KBI_Handbremse"])
     ret.espDisabled = pt_cp.vl["ESP_01"]["ESP_Tastung_passiv"] != 0
+    # ABS is executing the EPB_01 decel request (EPB-relay standstill hold)
+    self.esp_epb_decel_active = bool(pt_cp.vl["ESP_05"]["ESP_Verz_EPB_aktiv"])
 
     ret.leftBlinker = bool(pt_cp.vl["BCM"]["BLINKER_LEFT"])
     ret.rightBlinker = bool(pt_cp.vl["BCM"]["BLINKER_RIGHT"])

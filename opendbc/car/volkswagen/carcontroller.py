@@ -12,11 +12,16 @@ from opendbc.car.volkswagen.values import CanBus, CarControllerParams, Volkswage
 VisualAlert = structs.CarControl.HUDControl.VisualAlert
 LongCtrlState = structs.CarControl.Actuators.LongControlState
 
-# EPB-hold timeout test: while stopping, request 0 decel for ZERO_FRAMES ACC frames after every
-# ZERO_PERIOD ACC frames (50 Hz) of stopAccel, to find how long a decel drop must be to reset the
-# ~5.8 s ABS hold timeout. ACC_Anhalten / ACC_Betaetigung_EPB stay asserted throughout.
-EPB_TEST_ZERO_PERIOD = int(os.getenv("VW_EPB_TEST_ZERO_PERIOD", "225"))  # 4.5 s
-EPB_TEST_ZERO_FRAMES = int(os.getenv("VW_EPB_TEST_ZERO_FRAMES", "5"))    # 0.1 s
+# EPB-hold timeout workaround: the ABS ends an EPB-requested standstill hold ~5.7 s after it starts,
+# and only restarts that timer once it has actually let go (ESP_Verz_EPB_aktiv -> 0) and sees a fresh
+# request. So after ZERO_PERIOD ACC frames (50 Hz) of hold, request 0 decel (drops ACC_Freigabe_Verzanf,
+# so the relay withdraws EPB_Freig_Verzoeg_Anf) only until the ABS reports it has released, then
+# re-assert straight away to minimise the brakes-off time. ZERO_MAX_FRAMES caps the withdrawal if the
+# ABS never lets go. The same re-arm runs if the ABS drops the hold on its own while we request it.
+# ACC_Anhalten / ACC_Betaetigung_EPB stay asserted throughout.
+EPB_TEST_ZERO_PERIOD = int(os.getenv("VW_EPB_TEST_ZERO_PERIOD", "225"))         # 4.5 s
+EPB_TEST_ZERO_MAX_FRAMES = int(os.getenv("VW_EPB_TEST_ZERO_MAX_FRAMES", "25"))  # 0.5 s
+EPB_TEST_ZERO_MIN_FRAMES = 2  # so the relay sees the withdrawal on at least one EPB_01 frame
 
 
 class HCAMitigation:
@@ -122,6 +127,9 @@ class CarController(CarControllerBase):
     self.steering_power_last = 0
     self.accel_last = 0.
     self.stopping_frames = 0
+    self.epb_releasing = False  # withdrawing the EPB decel request until the ABS lets go
+    self.epb_release_frames = 0
+    self.esp_epb_decel_active_last = False
     self.lead_distance_bars_last = None
     self.distance_bar_frame = 0
     self.gra_acc_counter_last = None
@@ -232,11 +240,23 @@ class CarController(CarControllerBase):
           acc_control = self.CCS.acc_control_value(CS.out.cruiseState.available, CS.out.accFaulted, CC.longActive)
           accel = float(np.clip(actuators.accel, self.CCP.ACCEL_MIN, self.CCP.ACCEL_MAX) if CC.longActive else 0)
           if self.CP.flags & VolkswagenFlags.MLB and stopping and CC.longActive:
-            if self.stopping_frames % (EPB_TEST_ZERO_PERIOD + EPB_TEST_ZERO_FRAMES) >= EPB_TEST_ZERO_PERIOD:
-              accel = 0.
             self.stopping_frames += 1
+            abs_let_go = self.esp_epb_decel_active_last and not CS.esp_epb_decel_active
+            if self.epb_releasing:
+              released = not CS.esp_epb_decel_active and self.epb_release_frames >= EPB_TEST_ZERO_MIN_FRAMES
+              if released or self.epb_release_frames >= EPB_TEST_ZERO_MAX_FRAMES:
+                self.epb_releasing = False
+                self.stopping_frames = 0
+            elif self.stopping_frames >= EPB_TEST_ZERO_PERIOD or abs_let_go:
+              self.epb_releasing = True
+              self.epb_release_frames = 0
+            if self.epb_releasing:
+              accel = 0.
+              self.epb_release_frames += 1
           else:
             self.stopping_frames = 0
+            self.epb_releasing = False
+          self.esp_epb_decel_active_last = CS.esp_epb_decel_active
           starting = actuators.longControlState == LongCtrlState.pid and (CS.esp_hold_confirmation or CS.out.vEgo < 0.25)
           acc_msgs = self.CCS.create_acc_accel_control(self.packer_pt, self.CAN.pt, CS.acc_type, CC.longActive, accel,
                                                        acc_control, stopping, starting, CS.esp_hold_confirmation)
